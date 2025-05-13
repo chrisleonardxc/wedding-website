@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+      - UPLOAD_DIR=/app/uploads
+      - DB_PATH=/app/data/wedding.db
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf.txt:/etc/nginx/conf.d/default.conf
+      - ./uploads:/usr/share/nginx/uploads
+    depends_on:
+      - app
+    restart: unless-stopped

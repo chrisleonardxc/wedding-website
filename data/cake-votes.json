@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "flavor": "Vanilla",
+    "votes": 0,
+    "image": "/images/vanilla-cake.jpg"
+  },
+  {
+    "id": 2,
+    "flavor": "Chocolate",
+    "votes": 0,
+    "image": "/images/chocolate-cake.jpg"
+  },
+  {
+    "id": 3,
+    "flavor": "Red Velvet",
+    "votes": 0,
+    "image": "/images/red-velvet-cake.jpg"
+  },
+  {
+    "id": 4,
+    "flavor": "Lemon",
+    "votes": 0,
+    "image": "/images/lemon-cake.jpg"
+  }
+]
