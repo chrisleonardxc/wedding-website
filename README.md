@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 Wedding Website
 
 A Next.js-based wedding website with photo sharing capabilities.
@@ -28,3 +29,7 @@ Technologies Used
 - React
 - SQLite
 - Multer for file uploads
+=======
+# wedding-website
+A Next.js wedding website with photo sharing capabilities
+>>>>>>> ff52c3924402d69d2c54c82eb9284bd30516c1bf
