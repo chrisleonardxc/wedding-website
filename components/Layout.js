@@ -7,18 +7,7 @@ export default function Layout({ children, title = "Wedding Website" }) {
       <Head>
         <title>{title}</title>
         <meta name="description" content="Sydney and Chris's wedding website" />
-        <link rel="icon" href="/favicon.ico" />
-        {/* Add Google Fonts */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="true"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
+        {/* Font links moved to _document.js */}
       </Head>
 
       <header className="bg-primary shadow-elegant">
