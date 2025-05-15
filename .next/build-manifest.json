@@ -32,10 +32,10 @@
       "static/chunks/main.js",
       "static/chunks/pages/gallery.js"
     ],
-    "/wedding-predictions": [
+    "/photos": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/wedding-predictions.js"
+      "static/chunks/pages/photos.js"
     ]
   },
   "ampFirstPages": []

@@ -8,6 +8,7 @@ export default function Photos() {
   const [message, setMessage] = useState("");
   const [progress, setProgress] = useState(0);
   const [heic2anyLoaded, setHeic2anyLoaded] = useState(false);
+  const [convertedFiles, setConvertedFiles] = useState({}); // Track already converted files
 
   // Load heic2any library on component mount
   useEffect(() => {
@@ -41,6 +42,9 @@ export default function Photos() {
 
       for (const file of selectedFiles) {
         try {
+          // Generate a unique key for this file
+          const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
+          
           // Check if file is HEIC/HEIF
           const isHeic =
             file.name.toLowerCase().endsWith(".heic") ||
@@ -48,7 +52,16 @@ export default function Photos() {
             file.type === "image/heic" ||
             file.type === "image/heif";
 
-          if (isHeic && heic2anyLoaded) {
+          // If this HEIC file was already converted, use the cached result
+          if (isHeic && heic2anyLoaded && convertedFiles[fileKey]) {
+            newPreviews.push({
+              file: file,
+              convertedBlob: convertedFiles[fileKey].blob,
+              url: URL.createObjectURL(convertedFiles[fileKey].blob),
+              isLoading: false,
+              isHeic: true,
+            });
+          } else if (isHeic && heic2anyLoaded) {
             try {
               // Dynamically import heic2any
               const heic2anyModule = await import("heic2any");
@@ -69,6 +82,12 @@ export default function Photos() {
                 toType: "image/jpeg",
                 quality: 0.8,
               });
+
+              // Cache the converted blob
+              setConvertedFiles(prev => ({
+                ...prev,
+                [fileKey]: { blob: jpegBlob }
+              }));
 
               // Update the preview with the converted image
               const previewIndex = newPreviews.length - 1;
@@ -127,7 +146,7 @@ export default function Photos() {
         }
       });
     };
-  }, [selectedFiles, heic2anyLoaded]);
+  }, [selectedFiles, heic2anyLoaded, convertedFiles]);
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -144,9 +163,41 @@ export default function Photos() {
   };
 
   const removeFile = (indexToRemove) => {
-    setSelectedFiles((prevFiles) =>
+    const fileToRemove = selectedFiles[indexToRemove];
+    if (fileToRemove) {
+      // Generate the same unique key used for caching
+      const fileKey = `${fileToRemove.name}-${fileToRemove.size}-${fileToRemove.lastModified}`;
+      
+      // Clean up the preview URL if it exists
+      if (previews[indexToRemove] && previews[indexToRemove].url && !previews[indexToRemove].isPlaceholder) {
+        URL.revokeObjectURL(previews[indexToRemove].url);
+      }
+      
+      // Remove from convertedFiles cache if it exists
+      setConvertedFiles(prev => {
+        const updated = {...prev};
+        delete updated[fileKey];
+        return updated;
+      });
+    }
+    
+    // Remove the file from selectedFiles
+    setSelectedFiles(prevFiles => 
       prevFiles.filter((_, index) => index !== indexToRemove)
     );
+    
+    // Remove the preview
+    setPreviews(prevPreviews => 
+      prevPreviews.filter((_, index) => index !== indexToRemove)
+    );
+    
+    // Show success message
+    setMessage("Photo removed successfully");
+    
+    // Clear message after 3 seconds
+    setTimeout(() => {
+      setMessage("");
+    }, 3000);
   };
 
   const handleSubmit = async (e) => {
