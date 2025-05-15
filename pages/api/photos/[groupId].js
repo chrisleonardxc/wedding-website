@@ -4,7 +4,7 @@ import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 
 // Define consistent paths
-const dbPath = process.env.DB_PATH || path.join(process.cwd(), 'data', 'wedding.db');
+const dbPath = path.join(process.cwd(), 'data', 'wedding.db');
 
 // Initialize database function
 async function initDatabase() {
@@ -19,6 +19,10 @@ async function initDatabase() {
     driver: sqlite3.Database
   });
   
+  // Check if is_video column exists
+  const tableInfo = await db.all("PRAGMA table_info(photos)");
+  const hasIsVideoColumn = tableInfo.some(column => column.name === 'is_video');
+  
   // Create photos table if it doesn't exist with upload_group column
   await db.exec(`
     CREATE TABLE IF NOT EXISTS photos (
@@ -28,65 +32,52 @@ async function initDatabase() {
       name TEXT NOT NULL,
       caption TEXT,
       upload_group TEXT NOT NULL,
-      uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      is_video INTEGER DEFAULT 0
     )
   `);
+  
+  // Add is_video column if it doesn't exist
+  if (!hasIsVideoColumn) {
+    await db.exec(`ALTER TABLE photos ADD COLUMN is_video INTEGER DEFAULT 0;`);
+    console.log('Added is_video column to photos table');
+  }
   
   return db;
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
   const { groupId } = req.query;
   
   if (!groupId) {
     return res.status(400).json({ error: 'Group ID is required' });
   }
-
-  let db = null;
   
-  try {
-    db = await initDatabase();
-    
-    // Get all photos in the specified group
-    const photos = await db.all(`
-      SELECT 
-        id,
-        filename,
-        originalname,
-        name,
-        caption,
-        upload_group,
-        uploaded_at
-      FROM photos
-      WHERE upload_group = ?
-      ORDER BY uploaded_at DESC`,
-      [groupId]);
+  if (req.method === 'GET') {
+    try {
+      const db = await initDatabase();
       
-    // Format the photos with URLs
-    const formattedPhotos = photos.map(photo => ({
-      id: photo.id,
-      filename: photo.filename,
-      originalname: photo.originalname,
-      url: `/uploads/${photo.filename}`,
-      name: photo.name,
-      caption: photo.caption,
-      upload_group: photo.upload_group,
-      uploaded_at: photo.uploaded_at
-    }));
-    
-    console.log(`Found ${formattedPhotos.length} photos in group ${groupId}`);
-    
-    res.status(200).json(formattedPhotos);
-  } catch (error) {
-    console.error(`Error fetching photos for group ${groupId}:`, error);
-    res.status(500).json({ error: 'Internal server error' });
-  } finally {
-    if (db) {
-      await db.close();
+      // Get all photos in this group
+      const photos = await db.all(`
+        SELECT id, filename, originalname, name, caption, upload_group, uploaded_at, is_video
+        FROM photos
+        WHERE upload_group = ?
+        ORDER BY uploaded_at DESC
+      `, [groupId]);
+      
+      // Process photos to include full URLs
+      const processedPhotos = photos.map(photo => ({
+        ...photo,
+        url: `/uploads/${photo.filename}`
+      }));
+      
+      res.status(200).json(processedPhotos);
+    } catch (error) {
+      console.error('Error fetching group photos:', error);
+      res.status(500).json({ error: 'Failed to fetch group photos' });
     }
+  } else {
+    res.setHeader('Allow', ['GET']);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }

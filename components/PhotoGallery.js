@@ -30,7 +30,8 @@ export default function PhotoGallery({ photoGroups }) {
               url: selectedGroup.url,
               name: selectedGroup.name,
               caption: selectedGroup.caption,
-              uploaded_at: selectedGroup.uploaded_at
+              uploaded_at: selectedGroup.uploaded_at,
+              is_video: selectedGroup.is_video || false
             }]);
             setCurrentPhotoIndex(0);
           }
@@ -42,7 +43,8 @@ export default function PhotoGallery({ photoGroups }) {
             url: selectedGroup.url,
             name: selectedGroup.name,
             caption: selectedGroup.caption,
-            uploaded_at: selectedGroup.uploaded_at
+            uploaded_at: selectedGroup.uploaded_at,
+            is_video: selectedGroup.is_video || false
           }]);
         } finally {
           setLoading(false);
@@ -102,7 +104,7 @@ export default function PhotoGallery({ photoGroups }) {
     // Set the download attribute with a filename
     // Use original filename if available, or create one based on caption/name
     const fileName = currentPhoto.originalname || 
-                    `wedding-photo-${currentPhoto.name.replace(/\s+/g, '-')}-${currentPhotoIndex + 1}.jpg`;
+                    `wedding-${currentPhoto.is_video ? 'video' : 'photo'}-${currentPhoto.name.replace(/\s+/g, '-')}-${currentPhotoIndex + 1}${currentPhoto.is_video ? '.mp4' : '.jpg'}`;
     link.download = fileName;
     
     // Append to the document
@@ -163,11 +165,23 @@ export default function PhotoGallery({ photoGroups }) {
             ) : groupPhotos.length > 0 ? (
               <>
                 <div className="relative">
-                  <img
-                    src={groupPhotos[currentPhotoIndex].url}
-                    alt={groupPhotos[currentPhotoIndex].caption || "Wedding photo"}
-                    className="w-full max-h-[70vh] object-contain"
-                  />
+                  {groupPhotos[currentPhotoIndex].is_video ? (
+                    <video
+                      src={groupPhotos[currentPhotoIndex].url}
+                      className="w-full max-h-[70vh] object-contain"
+                      controls
+                      autoPlay
+                      playsInline
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                  ) : (
+                    <img
+                      src={groupPhotos[currentPhotoIndex].url}
+                      alt={groupPhotos[currentPhotoIndex].caption || "Wedding photo"}
+                      className="w-full max-h-[70vh] object-contain"
+                    />
+                  )}
                   
                   {/* Navigation buttons */}
                   {groupPhotos.length > 1 && (
@@ -255,6 +269,37 @@ export default function PhotoGallery({ photoGroups }) {
                     {new Date(groupPhotos[currentPhotoIndex].uploaded_at).toLocaleDateString()}
                   </p>
                   
+                  {/* Media type indicator */}
+                  <div className="mt-2 flex items-center">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      {groupPhotos[currentPhotoIndex].is_video ? (
+                        <>
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            className="h-4 w-4 mr-1" 
+                            viewBox="0 0 20 20" 
+                            fill="currentColor"
+                          >
+                            <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                          </svg>
+                          Video
+                        </>
+                      ) : (
+                        <>
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            className="h-4 w-4 mr-1" 
+                            viewBox="0 0 20 20" 
+                            fill="currentColor"
+                          >
+                            <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                          </svg>
+                          Photo
+                        </>
+                      )}
+                    </span>
+                  </div>
+                  
                   {/* Download button */}
                   <button
                     onClick={downloadCurrentPhoto}
@@ -274,13 +319,13 @@ export default function PhotoGallery({ photoGroups }) {
                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" 
                       />
                     </svg>
-                    Download Photo
+                    Download {groupPhotos[currentPhotoIndex].is_video ? "Video" : "Photo"}
                   </button>
                 </div>
               </>
             ) : (
               <div className="h-[70vh] flex items-center justify-center">
-                <p className="text-gray-500">No photos found in this group.</p>
+                <p className="text-gray-500">No media found in this group.</p>
               </div>
             )}
           </div>

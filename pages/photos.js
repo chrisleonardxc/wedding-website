@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Layout from "../components/Layout";
 
 export default function Photos() {
@@ -9,6 +9,7 @@ export default function Photos() {
   const [progress, setProgress] = useState(0);
   const [heic2anyLoaded, setHeic2anyLoaded] = useState(false);
   const [convertedFiles, setConvertedFiles] = useState({}); // Track already converted files
+  const videoRefs = useRef({}); // Refs for video elements
 
   // Load heic2any library on component mount
   useEffect(() => {
@@ -45,6 +46,10 @@ export default function Photos() {
           // Generate a unique key for this file
           const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
           
+          // Check if file is a video
+          const isVideo = file.type.startsWith('video/') || 
+                         /\.(mp4|mov|avi|wmv|flv|mkv|webm)$/i.test(file.name);
+          
           // Check if file is HEIC/HEIF
           const isHeic =
             file.name.toLowerCase().endsWith(".heic") ||
@@ -52,8 +57,16 @@ export default function Photos() {
             file.type === "image/heic" ||
             file.type === "image/heif";
 
+          // For videos, create preview directly
+          if (isVideo) {
+            newPreviews.push({
+              file: file,
+              url: URL.createObjectURL(file),
+              isVideo: true
+            });
+          }
           // If this HEIC file was already converted, use the cached result
-          if (isHeic && heic2anyLoaded && convertedFiles[fileKey]) {
+          else if (isHeic && heic2anyLoaded && convertedFiles[fileKey]) {
             newPreviews.push({
               file: file,
               convertedBlob: convertedFiles[fileKey].blob,
@@ -110,7 +123,7 @@ export default function Photos() {
               });
             }
           } else {
-            // For non-HEIC files or if heic2any isn't loaded, create preview directly
+            // For regular image files, create preview directly
             newPreviews.push({
               file: file,
               url: URL.createObjectURL(file),
@@ -150,12 +163,24 @@ export default function Photos() {
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      // Convert FileList to Array and append to existing files
+      // Convert FileList to Array
       const newFiles = Array.from(e.target.files);
-
-      // Limit total files to 10
-      const updatedFiles = [...selectedFiles, ...newFiles].slice(0, 10);
-      setSelectedFiles(updatedFiles);
+      
+      // Check file sizes
+      const oversizedFiles = newFiles.filter(file => file.size > 95 * 1024 * 1024); // 95MB to be safe
+      if (oversizedFiles.length > 0) {
+        setMessage(`Some files exceed the 95MB size limit: ${oversizedFiles.map(f => f.name).join(', ')}`);
+        // Filter out oversized files
+        const validFiles = newFiles.filter(file => file.size <= 95 * 1024 * 1024);
+        
+        // Limit total files to 10
+        const updatedFiles = [...selectedFiles, ...validFiles].slice(0, 10);
+        setSelectedFiles(updatedFiles);
+      } else {
+        // Limit total files to 10
+        const updatedFiles = [...selectedFiles, ...newFiles].slice(0, 10);
+        setSelectedFiles(updatedFiles);
+      }
 
       // Reset the file input so the same file can be selected again if needed
       e.target.value = null;
@@ -192,7 +217,7 @@ export default function Photos() {
     );
     
     // Show success message
-    setMessage("Photo removed successfully");
+    setMessage("File removed successfully");
     
     // Clear message after 3 seconds
     setTimeout(() => {
@@ -203,13 +228,13 @@ export default function Photos() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedFiles || selectedFiles.length === 0) {
-      setMessage("Please select at least one photo to upload!");
+      setMessage("Please select at least one photo or video to upload!");
       return;
     }
 
     if (selectedFiles.length > 10) {
       setMessage(
-        "You can only upload up to 10 photos at once. Please remove some photos."
+        "You can only upload up to 10 files at once. Please remove some files."
       );
       return;
     }
@@ -221,7 +246,6 @@ export default function Photos() {
     const formData = new FormData();
 
     // Add all selected files to the form data
-    // For HEIC files that were converted client-side, use the converted blob if available
     for (let i = 0; i < selectedFiles.length; i++) {
       const file = selectedFiles[i];
       const preview = previews[i];
@@ -239,7 +263,7 @@ export default function Photos() {
         );
         formData.append("photos", convertedFile);
       } else {
-        // Use original file for non-HEIC files or if conversion failed
+        // Use original file for videos and non-HEIC images
         formData.append("photos", file);
       }
     }
@@ -258,115 +282,221 @@ export default function Photos() {
 
       setProgress(70); // Update progress
 
-      if (response.ok) {
-        const result = await response.json();
-        setMessage(
-          `Successfully uploaded ${result.count} photo${
-            result.count !== 1 ? "s" : ""
-          }!`
-        );
-        e.target.reset();
-        setSelectedFiles([]);
-      } else {
-        const error = await response.json();
-        setMessage(`Failed to upload photos: ${error.error}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to upload photos");
       }
+
+      const result = await response.json();
+      setProgress(100); // Complete progress
+
+      // Clear form and show success message
+      setSelectedFiles([]);
+      setPreviews([]);
+      e.target.reset();
+      setMessage(
+        `Success! ${result.count} ${
+          result.count === 1 ? "file" : "files"
+        } uploaded.`
+      );
     } catch (error) {
-      setMessage("Error uploading photos: " + error.message);
+      console.error("Upload error:", error);
+      setMessage(`Upload failed: ${error.message}`);
     } finally {
       setUploading(false);
-      setProgress(100);
+      // Scroll to top to show the message
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  // Function to play/pause video previews
+  const toggleVideoPlay = (index) => {
+    const videoElement = videoRefs.current[index];
+    if (!videoElement) return;
+    
+    if (videoElement.paused) {
+      videoElement.play();
+    } else {
+      videoElement.pause();
+    }
+  };
+
+  // Function to set video ref
+  const setVideoRef = (element, index) => {
+    if (element) {
+      videoRefs.current[index] = element;
     }
   };
 
   return (
-    <Layout title="Share Your Photos">
-      <div className="max-w-2xl mx-auto py-8 px-4">
+    <Layout title="Share Your Wedding Photos">
+      <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-center mb-8">
-          Share Your Wedding Memories
+          Share Your Wedding Photos & Videos
         </h1>
+
+        {message && (
+          <div
+            className={`p-4 mb-6 rounded-md ${
+              message.includes("Success") || message.includes("removed")
+                ? "bg-green-50 text-green-800"
+                : "bg-red-50 text-red-800"
+            }`}
+          >
+            {message}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium">
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-gray-700"
+            >
               Your Name
             </label>
             <input
               type="text"
-              id="name"
               name="name"
+              id="name"
               required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
+              placeholder="Enter your name"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">
-              Add Photos (up to 10)
+            <label
+              htmlFor="caption"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Caption (Optional)
             </label>
-            <div className="flex items-center space-x-2">
-              <label
-                htmlFor="photos"
-                className="cursor-pointer px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md text-sm font-medium"
-              >
-                Choose Files
-              </label>
-              <span className="text-sm text-gray-500">
-                {selectedFiles.length} of 10 photos selected
-              </span>
-            </div>
             <input
-              type="file"
-              id="photos"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="hidden"
-              multiple
+              type="text"
+              name="caption"
+              id="caption"
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
+              placeholder="Add a caption for your photos"
             />
-            <p className="mt-1 text-xs text-gray-500">
-              Supported formats: JPG, PNG, GIF, HEIC (iPhone photos)
-            </p>
           </div>
 
-          {selectedFiles.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Upload Photos & Videos
+            </label>
+            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+              <div className="space-y-1 text-center">
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400"
+                  stroke="currentColor"
+                  fill="none"
+                  viewBox="0 0 48 48"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <div className="flex text-sm text-gray-600">
+                  <label
+                    htmlFor="file-upload"
+                    className="relative cursor-pointer bg-white rounded-md font-medium text-primary hover:text-primary-dark focus-within:outline-none"
+                  >
+                    <span>Upload files</span>
+                    <input
+                      id="file-upload"
+                      name="file-upload"
+                      type="file"
+                      className="sr-only"
+                      multiple
+                      accept="image/*,video/*,.heic,.heif"
+                      onChange={handleFileChange}
+                      disabled={uploading}
+                    />
+                  </label>
+                  <p className="pl-1">or drag and drop</p>
+                </div>
+                <p className="text-xs text-gray-500">
+                  PNG, JPG, HEIC, MP4, MOV up to 95MB (max 10 files)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Preview section */}
+          {previews.length > 0 && (
             <div className="mt-4">
-              <h3 className="text-sm font-medium mb-2">Selected Photos:</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Selected Files ({previews.length}/10)
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {previews.map((preview, index) => (
-                  <div key={index} className="relative group">
-                    <div className="h-32 bg-gray-100 rounded overflow-hidden">
-                      {preview.isLoading ? (
-                        <div className="h-full w-full flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-                          <span className="ml-2 text-xs text-gray-500">
-                            Converting HEIC...
-                          </span>
-                        </div>
-                      ) : (
-                        <img
-                          src={preview.url || "/placeholder-image.jpg"}
-                          alt={`Preview ${index + 1}`}
+                  <div
+                    key={index}
+                    className="relative border rounded-md overflow-hidden group"
+                  >
+                    {preview.isLoading ? (
+                      <div className="h-32 flex items-center justify-center bg-gray-100">
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                      </div>
+                    ) : preview.isVideo ? (
+                      <div className="h-32 relative">
+                        <video
+                          ref={(el) => setVideoRef(el, index)}
+                          src={preview.url}
                           className="h-full w-full object-cover"
+                          onClick={() => toggleVideoPlay(index)}
                         />
-                      )}
-                      {preview.isHeic &&
-                        !preview.isLoading &&
-                        !preview.error && (
-                          <div className="absolute top-1 left-1 bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded">
-                            HEIC
+                        <div className="absolute inset-0 flex items-center justify-center group-hover:opacity-0 transition-opacity">
+                          <div className="bg-black bg-opacity-50 rounded-full p-2">
+                            <svg 
+                              xmlns="http://www.w3.org/2000/svg" 
+                              className="h-6 w-6 text-white" 
+                              viewBox="0 0 24 24" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              strokeWidth="2" 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round"
+                            >
+                              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
                           </div>
-                        )}
-                      {preview.error && (
-                        <div className="absolute top-1 left-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded">
-                          Error
+                        </div>
+                      </div>
+                    ) : (
+                      <img
+                        src={preview.url || "/placeholder-image.jpg"}
+                        alt={`Preview ${index + 1}`}
+                        className="h-32 w-full object-cover"
+                      />
+                    )}
+                    {preview.isHeic &&
+                      !preview.isLoading &&
+                      !preview.error && (
+                        <div className="absolute top-1 left-1 bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded">
+                          HEIC
                         </div>
                       )}
-                    </div>
+                    {preview.isVideo && (
+                      <div className="absolute top-1 left-1 bg-purple-500 text-white text-xs px-1.5 py-0.5 rounded">
+                        VIDEO
+                      </div>
+                    )}
+                    {preview.error && (
+                      <div className="absolute top-1 left-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded">
+                        Error
+                      </div>
+                    )}
                     <button
                       type="button"
                       onClick={() => removeFile(index)}
                       className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Remove photo"
+                      title="Remove file"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -388,7 +518,7 @@ export default function Photos() {
                 ))}
                 {selectedFiles.length < 10 && (
                   <label
-                    htmlFor="photos"
+                    htmlFor="file-upload"
                     className="h-32 border-2 border-dashed border-gray-300 rounded flex items-center justify-center cursor-pointer hover:border-gray-400"
                   >
                     <div className="text-center">
@@ -414,18 +544,6 @@ export default function Photos() {
             </div>
           )}
 
-          <div>
-            <label htmlFor="caption" className="block text-sm font-medium">
-              Caption (will be applied to all photos)
-            </label>
-            <textarea
-              id="caption"
-              name="caption"
-              rows="3"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-            ></textarea>
-          </div>
-
           <button
             type="submit"
             disabled={uploading || selectedFiles.length === 0}
@@ -435,7 +553,7 @@ export default function Photos() {
                 : "bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
             }`}
           >
-            {uploading ? "Uploading..." : "Upload Photos"}
+            {uploading ? "Uploading..." : "Upload Files"}
           </button>
 
           {uploading && (
@@ -447,18 +565,6 @@ export default function Photos() {
             </div>
           )}
         </form>
-
-        {message && (
-          <div
-            className={`mt-4 p-3 rounded-md ${
-              message.includes("Error") || message.includes("Failed")
-                ? "bg-red-100 text-red-800"
-                : "bg-primary-light text-primary-dark"
-            }`}
-          >
-            {message}
-          </div>
-        )}
       </div>
     </Layout>
   );
