@@ -18,16 +18,32 @@ export default function PhotoGallery({ photoGroups }) {
           }
           
           const photos = await response.json();
-          // Add URL property to each photo
-          const photosWithUrls = photos.map(photo => ({
-            ...photo,
-            url: `/uploads/${photo.filename}`
-          }));
+          console.log('Fetched group photos:', photos); // Debug log
           
-          setGroupPhotos(photosWithUrls);
-          setCurrentPhotoIndex(0);
+          if (photos && photos.length > 0) {
+            setGroupPhotos(photos);
+            setCurrentPhotoIndex(0);
+          } else {
+            // If the API returns an empty array, use the selected group as fallback
+            setGroupPhotos([{
+              id: selectedGroup.id,
+              url: selectedGroup.url,
+              name: selectedGroup.name,
+              caption: selectedGroup.caption,
+              uploaded_at: selectedGroup.uploaded_at
+            }]);
+            setCurrentPhotoIndex(0);
+          }
         } catch (error) {
           console.error('Error fetching group photos:', error);
+          // Fallback to just showing the selected photo
+          setGroupPhotos([{
+            id: selectedGroup.id,
+            url: selectedGroup.url,
+            name: selectedGroup.name,
+            caption: selectedGroup.caption,
+            uploaded_at: selectedGroup.uploaded_at
+          }]);
         } finally {
           setLoading(false);
         }

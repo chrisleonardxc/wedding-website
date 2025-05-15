@@ -453,7 +453,7 @@ export default function Photos() {
             className={`mt-4 p-3 rounded-md ${
               message.includes("Error") || message.includes("Failed")
                 ? "bg-red-100 text-red-800"
-                : "bg-green-100 text-green-800"
+                : "bg-primary-light text-primary-dark"
             }`}
           >
             {message}

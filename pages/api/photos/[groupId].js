@@ -7,7 +7,7 @@ import { open } from 'sqlite';
 const dbPath = process.env.DB_PATH || path.join(process.cwd(), 'data', 'wedding.db');
 
 // Initialize database function
-async function initDb() {
+async function initDatabase() {
   // Ensure data directory exists
   const dataDir = path.dirname(dbPath);
   if (!fs.existsSync(dataDir)) {
@@ -49,31 +49,40 @@ export default async function handler(req, res) {
   let db = null;
   
   try {
-    db = await initDb();
+    db = await initDatabase();
     
     // Get all photos in the specified group
     const photos = await db.all(`
       SELECT 
         id,
         filename,
+        originalname,
         name,
         caption,
+        upload_group,
         uploaded_at
       FROM photos
-      WHERE upload_group = ?`, [groupId]);
+      WHERE upload_group = ?
+      ORDER BY uploaded_at DESC`,
+      [groupId]);
       
-    // Format the response with URLs
+    // Format the photos with URLs
     const formattedPhotos = photos.map(photo => ({
       id: photo.id,
+      filename: photo.filename,
+      originalname: photo.originalname,
       url: `/uploads/${photo.filename}`,
       name: photo.name,
       caption: photo.caption,
+      upload_group: photo.upload_group,
       uploaded_at: photo.uploaded_at
     }));
-
+    
+    console.log(`Found ${formattedPhotos.length} photos in group ${groupId}`);
+    
     res.status(200).json(formattedPhotos);
   } catch (error) {
-    console.error('Error fetching photos:', error);
+    console.error(`Error fetching photos for group ${groupId}:`, error);
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     if (db) {

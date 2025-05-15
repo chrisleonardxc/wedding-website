@@ -3,8 +3,5 @@
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
   "/gallery": "pages/gallery.js",
-  "/api/photos": "pages/api/photos.js",
-  "/api/upload": "pages/api/upload.js",
-  "/": "pages/index.js",
-  "/photos": "pages/photos.js"
+  "/": "pages/index.js"
 }

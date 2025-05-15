@@ -65,8 +65,10 @@ export default function Layout({ children, title = "Wedding Website" }) {
       <footer className="bg-primary py-8 text-white">
         <div className="container mx-auto px-4 text-center">
           <p className="font-script text-2xl mb-4">Sydney & Chris</p>
-          <p className="mb-2">September 15, 2023 • Sunset Beach Resort</p>
-          <p>© {new Date().getFullYear()} - Our Wedding Website</p>
+          <p className="mb-2">
+            September 27, 2025 • The Barn at Valhalla, Chapel Hill NC
+          </p>
+          <p>© {new Date().getFullYear()} - Chris Leonard Software</p>
         </div>
       </footer>
     </div>
