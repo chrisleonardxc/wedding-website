@@ -3,7 +3,9 @@
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
   "/gallery": "pages/gallery.js",
-  "/photos": "pages/photos.js",
+  "/": "pages/index.js",
   "/api/photos": "pages/api/photos.js",
-  "/api/upload": "pages/api/upload.js"
+  "/api/check-participant": "pages/api/check-participant.js",
+  "/api/wedding-predictions": "pages/api/wedding-predictions.js",
+  "/wedding-predictions": "pages/wedding-predictions.js"
 }

@@ -1,0 +1,133 @@
+[
+  {
+    "id": 1,
+    "question": "Who will cry first during the ceremony?",
+    "type": "multiple-choice",
+    "options": [
+      "Sydney",
+      "Chris",
+      "Both at the same time",
+      "Neither"
+    ]
+  },
+  {
+    "id": 2,
+    "question": "What will be the flavor of our wedding cake?",
+    "type": "multiple-choice",
+    "options": [
+      "Vanilla",
+      "Chocolate",
+      "Red Velvet",
+      "Lemon",
+      "Marble"
+    ]
+  },
+  {
+    "id": 3,
+    "question": "How many times will the word 'love' be said in our vows combined?",
+    "type": "number",
+    "placeholder": "Enter a number"
+  },
+  {
+    "id": 4,
+    "question": "What time will the first dance start?",
+    "type": "text",
+    "placeholder": "Format: HH:MM PM/AM"
+  },
+  {
+    "id": 5,
+    "question": "What color tie will the best man be wearing?",
+    "type": "text"
+  },
+  {
+    "id": 6,
+    "question": "How many guests will attend the wedding?",
+    "type": "number"
+  },
+  {
+    "id": 7,
+    "question": "What song will play for our first dance?",
+    "type": "text"
+  },
+  {
+    "id": 8,
+    "question": "Will it rain on our wedding day?",
+    "type": "multiple-choice",
+    "options": [
+      "Yes",
+      "No"
+    ]
+  },
+  {
+    "id": 9,
+    "question": "What time will the ceremony actually start?",
+    "type": "text",
+    "placeholder": "Format: HH:MM PM/AM"
+  },
+  {
+    "id": 10,
+    "question": "Who will catch the bouquet?",
+    "type": "text"
+  },
+  {
+    "id": 11,
+    "question": "How many photos will be taken by the photographer?",
+    "type": "number"
+  },
+  {
+    "id": 12,
+    "question": "What will be the most popular drink at the bar?",
+    "type": "text"
+  },
+  {
+    "id": 13,
+    "question": "How long will our first kiss as a married couple last?",
+    "type": "text",
+    "placeholder": "Format: X seconds"
+  },
+  {
+    "id": 14,
+    "question": "What time will the last guest leave?",
+    "type": "text",
+    "placeholder": "Format: HH:MM PM/AM"
+  },
+  {
+    "id": 15,
+    "question": "Will someone make an unexpected toast?",
+    "type": "multiple-choice",
+    "options": [
+      "Yes",
+      "No"
+    ]
+  },
+  {
+    "id": 16,
+    "question": "What will be the most memorable moment of the wedding?",
+    "type": "text"
+  },
+  {
+    "id": 17,
+    "question": "How many tiers will our wedding cake have?",
+    "type": "number"
+  },
+  {
+    "id": 18,
+    "question": "What color will the majority of the bridesmaids be wearing?",
+    "type": "text"
+  },
+  {
+    "id": 19,
+    "question": "Will there be any wedding crashers?",
+    "type": "multiple-choice",
+    "options": [
+      "Yes",
+      "No"
+    ]
+  },
+  {
+    "id": 20,
+    "question": "What time will the bride and groom leave the reception?",
+    "type": "text",
+    "placeholder": "Format: HH:MM PM/AM"
+  }
+]

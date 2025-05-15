@@ -50,10 +50,10 @@ export default function Layout({ children, title = "Wedding Website" }) {
                 Upload Photos
               </Link>
               <Link
-                href="/cake-voting"
+                href="/wedding-predictions"
                 className="text-white hover:text-primary-light transition duration-300 px-3 py-2"
               >
-                Cake Voting
+                Predictions
               </Link>
             </div>
           </div>
