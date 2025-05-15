@@ -3,5 +3,9 @@
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
   "/gallery": "pages/gallery.js",
+  "/photos": "pages/photos.js",
+  "/wedding-predictions": "pages/wedding-predictions.js",
+  "/api/check-participant": "pages/api/check-participant.js",
+  "/api/wedding-predictions": "pages/api/wedding-predictions.js",
   "/": "pages/index.js"
 }

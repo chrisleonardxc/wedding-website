@@ -82,7 +82,7 @@ export default function WeddingPredictions() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (hasSubmitted) {
+    if (hasSubmitted && !showQuestions) {
       setMessage('You have already submitted your predictions!');
       return;
     }
@@ -117,10 +117,25 @@ export default function WeddingPredictions() {
       setHasSubmitted(true);
       localStorage.setItem('predictionsSubmitted', 'true');
       setMessage('Thank you for submitting your predictions!');
+      
+      // Reset form state but keep predictions loaded
+      setShowQuestions(false);
+      setName('');
+      setAnswers({});
     } catch (error) {
       console.error('Error submitting predictions:', error);
       setMessage('Error submitting predictions: ' + error.message);
     }
+  };
+  
+  const handleSubmitAnotherEntry = () => {
+    // Reset submission state but keep predictions loaded
+    setHasSubmitted(false);
+    setMessage('');
+    setError('');
+    setName('');
+    setAnswers({});
+    setShowQuestions(false);
   };
 
   const renderQuestionInput = (question) => {
@@ -264,7 +279,20 @@ export default function WeddingPredictions() {
               <div className="bg-white p-6 rounded-lg shadow-elegant text-center">
                 <h2 className="text-2xl font-serif mb-4">Thank You!</h2>
                 <p className="mb-4">Your predictions have been submitted successfully.</p>
-                <p>Winners will be announced after the wedding!</p>
+                <p className="mb-6">Winners will be announced after the wedding!</p>
+                
+                <div className="border-t border-gray-200 pt-6 mt-6">
+                  <h3 className="text-xl font-serif mb-3">Want to submit another entry?</h3>
+                  <p className="mb-4 text-gray-600">
+                    Help a friend or family member participate! Remember to send another $5 Venmo payment with their name.
+                  </p>
+                  <button
+                    onClick={handleSubmitAnotherEntry}
+                    className="py-2 px-6 bg-primary text-white rounded-md hover:bg-primary-dark transition duration-300"
+                  >
+                    Submit Another Entry
+                  </button>
+                </div>
               </div>
             )}
           </>
