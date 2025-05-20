@@ -1,10 +1,42 @@
 import { useState, useEffect } from "react";
+import {
+  isPhotoLiked,
+  togglePhotoLike,
+  toggleGroupLike,
+  getLikedPhotos,
+} from "../lib/galleryUtils";
+import { syncLikesToServer } from "../lib/likeSync";
 
 export default function PhotoGallery({ photoGroups }) {
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [groupPhotos, setGroupPhotos] = useState([]);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [likedPhotos, setLikedPhotos] = useState({});
+
+  // Load liked photos from localStorage on component mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const storedLikes = localStorage.getItem("likedPhotos");
+        setLikedPhotos(storedLikes ? JSON.parse(storedLikes) : {});
+      } catch (error) {
+        console.error("Error loading liked photos:", error);
+        setLikedPhotos({});
+      }
+    }
+  }, []);
+
+  // Sync likes with server when component mounts or unmounts
+  useEffect(() => {
+    // Sync likes when component mounts
+    syncLikesToServer();
+
+    // Sync likes when component unmounts
+    return () => {
+      syncLikesToServer();
+    };
+  }, []);
 
   // Fetch all photos in a group when a group is selected
   useEffect(() => {
@@ -14,43 +46,49 @@ export default function PhotoGallery({ photoGroups }) {
         try {
           const response = await fetch(`/api/photos/${selectedGroup.id}`);
           if (!response.ok) {
-            throw new Error('Failed to fetch group photos');
+            throw new Error("Failed to fetch group photos");
           }
-          
+
           const photos = await response.json();
-          console.log('Fetched group photos:', photos); // Debug log
-          
+          console.log("Fetched group photos:", photos); // Debug log
+
           if (photos && photos.length > 0) {
             setGroupPhotos(photos);
             setCurrentPhotoIndex(0);
           } else {
             // If the API returns an empty array, use the selected group as fallback
-            setGroupPhotos([{
+            setGroupPhotos([
+              {
+                id: selectedGroup.id,
+                url: selectedGroup.url,
+                name: selectedGroup.name,
+                caption: selectedGroup.caption,
+                uploaded_at: selectedGroup.uploaded_at,
+                is_video: selectedGroup.is_video || false,
+                likes_count: selectedGroup.total_likes || 0,
+              },
+            ]);
+            setCurrentPhotoIndex(0);
+          }
+        } catch (error) {
+          console.error("Error fetching group photos:", error);
+          // Fallback to just showing the selected photo
+          setGroupPhotos([
+            {
               id: selectedGroup.id,
               url: selectedGroup.url,
               name: selectedGroup.name,
               caption: selectedGroup.caption,
               uploaded_at: selectedGroup.uploaded_at,
-              is_video: selectedGroup.is_video || false
-            }]);
-            setCurrentPhotoIndex(0);
-          }
-        } catch (error) {
-          console.error('Error fetching group photos:', error);
-          // Fallback to just showing the selected photo
-          setGroupPhotos([{
-            id: selectedGroup.id,
-            url: selectedGroup.url,
-            name: selectedGroup.name,
-            caption: selectedGroup.caption,
-            uploaded_at: selectedGroup.uploaded_at,
-            is_video: selectedGroup.is_video || false
-          }]);
+              is_video: selectedGroup.is_video || false,
+              likes_count: selectedGroup.total_likes || 0,
+            },
+          ]);
         } finally {
           setLoading(false);
         }
       };
-      
+
       fetchGroupPhotos();
     }
   }, [selectedGroup]);
@@ -93,28 +131,115 @@ export default function PhotoGallery({ photoGroups }) {
 
   const downloadCurrentPhoto = () => {
     if (groupPhotos.length === 0 || !groupPhotos[currentPhotoIndex]) return;
-    
+
     const currentPhoto = groupPhotos[currentPhotoIndex];
     const photoUrl = currentPhoto.url;
-    
+
     // Create a link element
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = photoUrl;
-    
+
     // Set the download attribute with a filename
     // Use original filename if available, or create one based on caption/name
-    const fileName = currentPhoto.originalname || 
-                    `wedding-${currentPhoto.is_video ? 'video' : 'photo'}-${currentPhoto.name.replace(/\s+/g, '-')}-${currentPhotoIndex + 1}${currentPhoto.is_video ? '.mp4' : '.jpg'}`;
+    const fileName =
+      currentPhoto.originalname ||
+      `wedding-${
+        currentPhoto.is_video ? "video" : "photo"
+      }-${currentPhoto.name.replace(/\s+/g, "-")}-${currentPhotoIndex + 1}${
+        currentPhoto.is_video ? ".mp4" : ".jpg"
+      }`;
     link.download = fileName;
-    
+
     // Append to the document
     document.body.appendChild(link);
-    
+
     // Trigger the download
     link.click();
-    
+
     // Clean up
     document.body.removeChild(link);
+  };
+
+  // Handle liking/unliking a photo
+  const toggleLike = (photoId, event) => {
+    event.stopPropagation();
+
+    const newLikedPhotos = { ...likedPhotos };
+    newLikedPhotos[photoId] = !newLikedPhotos[photoId];
+
+    // Update state
+    setLikedPhotos(newLikedPhotos);
+
+    // Save to localStorage and queue for server sync
+    togglePhotoLike(photoId, newLikedPhotos[photoId]);
+
+    // Update the likes_count in the UI immediately for better UX
+    if (groupPhotos.length > 0) {
+      const updatedPhotos = groupPhotos.map((photo) => {
+        if (photo.id === photoId) {
+          return {
+            ...photo,
+            likes_count:
+              (photo.likes_count || 0) + (newLikedPhotos[photoId] ? 1 : -1),
+          };
+        }
+        return photo;
+      });
+      setGroupPhotos(updatedPhotos);
+    }
+  };
+
+  // Handle liking/unliking a group of photos
+  const toggleGroupLikes = (group, event) => {
+    event.stopPropagation();
+
+    // Get all photo IDs in the group
+    const photoIds = group.photos
+      ? group.photos.map((photo) => photo.id)
+      : [group.id];
+
+    // Check if any photo in the group is already liked
+    const anyLiked = photoIds.some((id) => likedPhotos[id]);
+
+    // Toggle all photos in the group
+    const newLikedPhotos = { ...likedPhotos };
+
+    photoIds.forEach((id) => {
+      newLikedPhotos[id] = !anyLiked;
+    });
+
+    // Update state
+    setLikedPhotos(newLikedPhotos);
+
+    // Save to localStorage and queue for server sync
+    toggleGroupLike(photoIds, !anyLiked);
+
+    // Update the total_likes in the UI immediately for better UX
+    const updatedPhotoGroups = photoGroups.map((g) => {
+      if (g.id === group.id) {
+        return {
+          ...g,
+          total_likes:
+            (g.total_likes || 0) +
+            (!anyLiked ? photoIds.length : -photoIds.length),
+        };
+      }
+      return g;
+    });
+  };
+
+  // Check if a photo is liked
+  const isLiked = (photoId) => {
+    return !!likedPhotos[photoId];
+  };
+
+  // Check if any photo in a group is liked
+  const isGroupLiked = (group) => {
+    if (!group.photos || group.photos.length === 0) {
+      return isLiked(group.id);
+    }
+
+    return group.photos.some((photo) => isLiked(photo.id));
   };
 
   return (
@@ -123,10 +248,12 @@ export default function PhotoGallery({ photoGroups }) {
         {photoGroups.map((group) => (
           <div
             key={group.id}
-            className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer transform transition hover:scale-105"
-            onClick={() => openModal(group)}
+            className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer transform transition hover:scale-105 relative"
           >
-            <div className="h-48 overflow-hidden relative">
+            <div
+              className="h-48 overflow-hidden relative"
+              onClick={() => openModal(group)}
+            >
               <img
                 src={group.url}
                 alt={group.caption || "Wedding photo"}
@@ -138,11 +265,64 @@ export default function PhotoGallery({ photoGroups }) {
                 </div>
               )}
             </div>
-            <div className="p-3">
-              <p className="font-medium text-gray-800 truncate">
-                {group.caption || "Wedding Moment"}
-              </p>
-              <p className="text-sm text-gray-500">By {group.name}</p>
+            <div className="p-3 flex justify-between items-center">
+              <div>
+                <p className="font-medium text-gray-800 truncate">
+                  {group.caption || "Wedding Moment"}
+                </p>
+                <p className="text-sm text-gray-500">By {group.name}</p>
+              </div>
+
+              <div className="flex items-center">
+                {/* Like count display */}
+                {group.total_likes > 0 && (
+                  <span className="text-sm text-gray-500 mr-2">
+                    {group.total_likes}
+                  </span>
+                )}
+
+                {/* Like button for photo group */}
+                <button
+                  className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition-all"
+                  onClick={(e) => toggleGroupLikes(group, e)}
+                  aria-label={
+                    isGroupLiked(group)
+                      ? "Unlike this photo group"
+                      : "Like this photo group"
+                  }
+                  aria-pressed={isGroupLiked(group)}
+                >
+                  {isGroupLiked(group) ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6 text-red-500"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                      />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         ))}
@@ -178,11 +358,14 @@ export default function PhotoGallery({ photoGroups }) {
                   ) : (
                     <img
                       src={groupPhotos[currentPhotoIndex].url}
-                      alt={groupPhotos[currentPhotoIndex].caption || "Wedding photo"}
+                      alt={
+                        groupPhotos[currentPhotoIndex].caption ||
+                        "Wedding photo"
+                      }
                       className="w-full max-h-[70vh] object-contain"
                     />
                   )}
-                  
+
                   {/* Navigation buttons */}
                   {groupPhotos.length > 1 && (
                     <>
@@ -232,14 +415,53 @@ export default function PhotoGallery({ photoGroups }) {
                       </button>
                     </>
                   )}
-                  
+
                   {/* Photo counter */}
                   {groupPhotos.length > 1 && (
                     <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white text-sm px-3 py-1 rounded-full">
                       {currentPhotoIndex + 1} / {groupPhotos.length}
                     </div>
                   )}
-                  
+
+                  {/* Like button for current photo - MADE LARGER AND MORE VISIBLE */}
+                  <button
+                    className="absolute bottom-4 right-4 p-3 rounded-full bg-white shadow-lg hover:bg-gray-100 transition-all"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleLike(groupPhotos[currentPhotoIndex].id, e);
+                    }}
+                  >
+                    {isLiked(groupPhotos[currentPhotoIndex].id) ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-8 w-8 text-red-500"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-8 w-8 text-gray-500"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                        />
+                      </svg>
+                    )}
+                  </button>
+
                   <button
                     className="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-75"
                     onClick={closeModal}
@@ -261,23 +483,69 @@ export default function PhotoGallery({ photoGroups }) {
                   </button>
                 </div>
                 <div className="p-4">
-                  <h3 className="text-xl font-semibold">
-                    {groupPhotos[currentPhotoIndex].caption || "Wedding Moment"}
-                  </h3>
-                  <p className="text-gray-600">Shared by {groupPhotos[currentPhotoIndex].name}</p>
-                  <p className="text-gray-500 text-sm mt-2">
-                    {new Date(groupPhotos[currentPhotoIndex].uploaded_at).toLocaleDateString()}
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-xl font-semibold">
+                      {groupPhotos[currentPhotoIndex].caption ||
+                        "Wedding Moment"}
+                    </h3>
+
+                    {/* Like status indicator */}
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                      {isLiked(groupPhotos[currentPhotoIndex].id) ? (
+                        <>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5 mr-1"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          Liked
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5 mr-1"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                            />
+                          </svg>
+                          Not liked
+                        </>
+                      )}
+                    </span>
+                  </div>
+                  <p className="text-gray-600">
+                    Shared by {groupPhotos[currentPhotoIndex].name}
                   </p>
-                  
+                  <p className="text-gray-500 text-sm mt-2">
+                    {new Date(
+                      groupPhotos[currentPhotoIndex].uploaded_at
+                    ).toLocaleDateString()}
+                  </p>
+
                   {/* Media type indicator */}
                   <div className="mt-2 flex items-center">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                       {groupPhotos[currentPhotoIndex].is_video ? (
                         <>
-                          <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            className="h-4 w-4 mr-1" 
-                            viewBox="0 0 20 20" 
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4 mr-1"
+                            viewBox="0 0 20 20"
                             fill="currentColor"
                           >
                             <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
@@ -286,41 +554,78 @@ export default function PhotoGallery({ photoGroups }) {
                         </>
                       ) : (
                         <>
-                          <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            className="h-4 w-4 mr-1" 
-                            viewBox="0 0 20 20" 
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4 mr-1"
+                            viewBox="0 0 20 20"
                             fill="currentColor"
                           >
-                            <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                            <path
+                              fillRule="evenodd"
+                              d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+                              clipRule="evenodd"
+                            />
                           </svg>
                           Photo
                         </>
                       )}
                     </span>
                   </div>
-                  
+
                   {/* Download button */}
-                  <button
-                    onClick={downloadCurrentPhoto}
-                    className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                  >
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      className="h-5 w-5 mr-2" 
-                      fill="none" 
-                      viewBox="0 0 24 24" 
-                      stroke="currentColor"
+                  <div className="mt-4 flex space-x-2">
+                    <button
+                      onClick={downloadCurrentPhoto}
+                      className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                     >
-                      <path 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
-                        strokeWidth={2} 
-                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" 
-                      />
-                    </svg>
-                    Download {groupPhotos[currentPhotoIndex].is_video ? "Video" : "Photo"}
-                  </button>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 mr-2"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                        />
+                      </svg>
+                      Download{" "}
+                      {groupPhotos[currentPhotoIndex].is_video
+                        ? "Video"
+                        : "Photo"}
+                    </button>
+
+                    {/* Like button as a regular button too */}
+                    <button
+                      onClick={(e) =>
+                        toggleLike(groupPhotos[currentPhotoIndex].id, e)
+                      }
+                      className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium ${
+                        isLiked(groupPhotos[currentPhotoIndex].id)
+                          ? "text-white bg-red-500 hover:bg-red-600"
+                          : "text-gray-700 bg-gray-200 hover:bg-gray-300"
+                      } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500`}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 mr-2"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      {isLiked(groupPhotos[currentPhotoIndex].id)
+                        ? "Unlike"
+                        : "Like"}
+                    </button>
+                  </div>
                 </div>
               </>
             ) : (

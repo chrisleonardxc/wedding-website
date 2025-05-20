@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
+import { getDb } from '../../../lib/db';
 
 // Define consistent paths
 const dbPath = path.join(process.cwd(), 'data', 'wedding.db');
@@ -55,14 +56,27 @@ export default async function handler(req, res) {
   
   if (req.method === 'GET') {
     try {
-      const db = await initDatabase();
+      const db = await getDb();
       
-      // Get all photos in this group
+      // Ensure the likes table exists
+      await db.exec(`
+        CREATE TABLE IF NOT EXISTS photo_likes (
+          photo_id TEXT NOT NULL,
+          likes_count INTEGER DEFAULT 0,
+          last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (photo_id)
+        );
+      `);
+      
+      // Get all photos in this group with like counts
       const photos = await db.all(`
-        SELECT id, filename, originalname, name, caption, upload_group, uploaded_at, is_video
-        FROM photos
-        WHERE upload_group = ?
-        ORDER BY uploaded_at DESC
+        SELECT p.id, p.filename, p.originalname, p.name, p.caption, 
+               p.upload_group, p.uploaded_at, p.is_video,
+               COALESCE(l.likes_count, 0) as likes_count
+        FROM photos p
+        LEFT JOIN photo_likes l ON p.id = l.photo_id
+        WHERE p.upload_group = ?
+        ORDER BY p.uploaded_at DESC
       `, [groupId]);
       
       // Process photos to include full URLs
