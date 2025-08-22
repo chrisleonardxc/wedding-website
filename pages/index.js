@@ -1,6 +1,6 @@
-import Layout from "../components/Layout";
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import Layout from "../components/Layout";
 
 export default function Home() {
   const [days, setDays] = useState(0);
@@ -55,7 +55,7 @@ export default function Home() {
         className="relative h-[70vh] bg-cover bg-center flex items-center justify-center"
         style={{ backgroundImage: "url('/images/hero-bg.jpg')" }}
       >
-        <div className="absolute inset-0 bg-black bg-opacity-30"></div>
+        <div className="absolute inset-0 bg-secondary bg-opacity-60"></div>
         <div className="relative z-10 text-center px-4">
           <h1 className="font-script text-5xl md:text-7xl text-white mb-4">
             Sydney & Chris
@@ -72,23 +72,27 @@ export default function Home() {
       {/* Navigation Cards */}
       <div className="py-16 bg-primary-light bg-opacity-20">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             <Link
               href="/gallery"
               className="group bg-white hover:bg-primary-light rounded-lg overflow-hidden shadow-elegant transition-all duration-300 transform hover:-translate-y-1"
             >
-              <div className="h-48 overflow-hidden">
-                <img
-                  src="/images/gallery-thumb.jpg"
-                  alt="Photo gallery"
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
+              <div className="h-48 overflow-hidden flex items-center justify-center bg-primary-light bg-opacity-10">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  width="256" 
+                  height="200" 
+                  viewBox="0 0 24 24"
+                  className="transition-transform duration-500 group-hover:scale-110 fill-primary"
+                >
+                  <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                </svg>
               </div>
               <div className="p-6 text-center">
-                <h3 className="font-serif text-xl font-semibold text-gray-800 mb-2">
+                <h3 className="font-serif text-xl font-semibold text-primary-dark mb-2">
                   Photo Gallery
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-primary">
                   Browse moments from our special day
                 </p>
               </div>
@@ -98,39 +102,22 @@ export default function Home() {
               href="/photos"
               className="group bg-white hover:bg-secondary-light rounded-lg overflow-hidden shadow-elegant transition-all duration-300 transform hover:-translate-y-1"
             >
-              <div className="h-48 overflow-hidden">
-                <img
-                  src="/images/upload-thumb.jpg"
-                  alt="Upload photos"
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
+              <div className="h-48 overflow-hidden flex items-center justify-center bg-primary-light bg-opacity-10">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  width="256" 
+                  height="200" 
+                  viewBox="0 0 24 24"
+                  className="transition-transform duration-500 group-hover:scale-110 fill-primary"
+                >
+                  <path d="M5 20h14v-2H5v2zm7-16-7 7h4v6h6v-6h4l-7-7z"/>
+                </svg>
               </div>
               <div className="p-6 text-center">
-                <h3 className="font-serif text-xl font-semibold text-gray-800 mb-2">
+                <h3 className="font-serif text-xl font-semibold text-primary-dark mb-2">
                   Share Your Photos
                 </h3>
-                <p className="text-gray-600">Upload your favorite moments</p>
-              </div>
-            </Link>
-
-            <Link
-              href="/wedding-predictions"
-              className="group bg-white hover:bg-accent-light rounded-lg overflow-hidden shadow-elegant transition-all duration-300 transform hover:-translate-y-1"
-            >
-              <div className="h-48 overflow-hidden">
-                <img
-                  src="/images/cake-thumb.jpg"
-                  alt="Wedding Predictions"
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
-              </div>
-              <div className="p-6 text-center">
-                <h3 className="font-serif text-xl font-semibold text-gray-800 mb-2">
-                  Wedding Predictions
-                </h3>
-                <p className="text-gray-600">
-                  Predict what will happen at our wedding
-                </p>
+                <p className="text-primary">Upload your favorite moments</p>
               </div>
             </Link>
           </div>
@@ -144,7 +131,7 @@ export default function Home() {
         </h2>
 
         <div className="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-elegant">
-          <p className="text-lg text-gray-700 leading-relaxed">
+          <p className="text-lg text-primary-dark leading-relaxed">
             We met in 2018 during a hiking trip with mutual friends. After three
             years of adventures together, Chris proposed on the same mountain
             where we first met. Now we're excited to begin our greatest
@@ -170,7 +157,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Countdown Section - Updated with lighter colors */}
+      {/* Countdown Section */}
       <div className="py-16 bg-primary text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="font-script text-4xl mb-8">

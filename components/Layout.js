@@ -1,9 +1,9 @@
-import Head from "next/head";
 import Link from "next/link";
+import Head from "next/head";
 
 export default function Layout({ children, title = "Wedding Website" }) {
   return (
-    <div className="min-h-screen flex flex-col bg-ivory">
+    <div className="min-h-screen flex flex-col bg-white">
       <Head>
         <title>{title}</title>
         <meta name="description" content="Sydney and Chris's wedding website" />
@@ -37,12 +37,6 @@ export default function Layout({ children, title = "Wedding Website" }) {
                 className="text-white hover:text-primary-light transition duration-300 px-3 py-2"
               >
                 Upload Photos
-              </Link>
-              <Link
-                href="/wedding-predictions"
-                className="text-white hover:text-primary-light transition duration-300 px-3 py-2"
-              >
-                Predictions
               </Link>
             </div>
           </div>

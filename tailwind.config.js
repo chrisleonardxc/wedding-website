@@ -7,36 +7,23 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Carolina blue and white as primary colors
+        // Carolina blue as primary color
         primary: {
           light: "#A7D8FF", // Light Carolina blue
           DEFAULT: "#4B9CD3", // Carolina blue
           dark: "#13294B", // Navy blue (UNC colors)
         },
+        // Light green as secondary color (similar to Benjamin Moore Stokes Forest Green)
         secondary: {
-          light: "#FFE5E5", // Light pink
-          DEFAULT: "#FF9A8B", // Coral/salmon pink
-          dark: "#E67E76", // Deeper coral
+          light: "#B8D4B8", // Very light green
+          DEFAULT: "#7BA05B", // Stokes Forest Green inspired
+          dark: "#5A7A43", // Darker green
         },
-        accent: {
-          light: "#FFF9C4", // Light yellow
-          DEFAULT: "#FFEB3B", // Yellow
-          dark: "#FBC02D", // Deeper yellow
-        },
-        green: {
-          light: "#C8E6C9", // Light green
-          DEFAULT: "#81C784", // Medium green
-          dark: "#4CAF50", // Deeper green
-        },
-        purple: {
-          light: "#E1BEE7", // Light purple
-          DEFAULT: "#9C27B0", // Medium purple
-          dark: "#7B1FA2", // Deep purple
-        },
-        blush: "#FFD1DC",
-        cream: "#FFFDD0",
-        ivory: "#FFFFF0",
+        // Keep white variants
         white: "#FFFFFF",
+        ivory: "#FFFFF0", // Keep for subtle background variation
+        
+        // Remove all other colors - they'll fall back to Tailwind defaults if needed
       },
       fontFamily: {
         serif: ["Playfair Display", "Georgia", "serif"],
