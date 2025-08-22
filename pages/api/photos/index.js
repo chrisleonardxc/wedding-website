@@ -62,10 +62,11 @@ export default async function handler(req, res) {
         ORDER BY p.uploaded_at DESC
       `);
       
-      // Process photos to include full URLs
+      // Process photos to include full URLs and ensure proper media type handling
       const processedPhotos = photos.map(photo => ({
         ...photo,
-        url: `/uploads/${photo.filename}`
+        url: `/uploads/${photo.filename}`,
+        is_video: Boolean(photo.is_video) // Ensure boolean type
       }));
       
       // Group photos by upload group

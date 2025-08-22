@@ -254,11 +254,67 @@ export default function PhotoGallery({ photoGroups }) {
               className="h-48 overflow-hidden relative"
               onClick={() => openModal(group)}
             >
-              <img
-                src={group.url}
-                alt={group.caption || "Wedding photo"}
-                className="w-full h-full object-cover"
-              />
+              {/* Handle video-only groups differently */}
+              {group.isVideoOnly ? (
+                <div className="w-full h-full relative">
+                  <video
+                    src={group.url}
+                    className="w-full h-full object-cover"
+                    muted
+                    playsInline
+                    preload="metadata"
+                    onMouseEnter={(e) => e.target.play()}
+                    onMouseLeave={(e) => {
+                      e.target.pause();
+                      e.target.currentTime = 0;
+                    }}
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                  {/* Video overlay indicator */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="bg-black bg-opacity-50 rounded-full p-3">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-8 w-8 text-white"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <img
+                  src={group.url}
+                  alt={group.caption || "Wedding photo"}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Fallback if image fails to load
+                    e.target.src = '/placeholder-image.jpg';
+                  }}
+                />
+              )}
+              
+              {/* Show media type indicators */}
+              <div className="absolute top-2 left-2 flex flex-col gap-1">
+                {group.photos && group.photos.some(photo => photo.is_video) && (
+                  <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded">
+                    VIDEO
+                  </span>
+                )}
+                {group.photos && group.photos.some(photo => !photo.is_video) && (
+                  <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded">
+                    PHOTO
+                  </span>
+                )}
+              </div>
+              
               {group.photoCount > 1 && (
                 <div className="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded-full">
                   +{group.photoCount - 1} more
