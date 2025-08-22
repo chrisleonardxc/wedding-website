@@ -1,18 +1,10 @@
-import { createRouter } from "next-connect";
+import fs from "fs";
 import multer from "multer";
 import { v4 as uuidv4 } from 'uuid';
 import path from "path";
-import fs from "fs";
-import { promisify } from "util";
-import { exec } from "child_process";
-import { initDb } from '../../lib/db';
+import { getDb, closeDb } from "../../lib/db";
 
-// Promisify exec for async/await usage
-const execPromise = promisify(exec);
-
-// Define consistent paths
-const dbPath =
-  process.env.DB_PATH || path.join(process.cwd(), "data", "wedding.db");
+const dbPath = process.env.DB_PATH || path.join(process.cwd(), "data", "wedding.db");
 
 // Configure multer for file uploads
 const upload = multer({
@@ -37,115 +29,90 @@ const upload = multer({
   },
 });
 
-// Helper function to determine if a file is a video
-function isVideoFile(file) {
-  const videoMimeTypes = [
-    'video/mp4',
-    'video/quicktime',
-    'video/x-msvideo',
-    'video/x-ms-wmv',
-    'video/webm',
-    'video/x-flv',
-    'video/x-matroska'
-  ];
-  
-  const videoExtensions = ['.mp4', '.mov', '.avi', '.wmv', '.flv', '.mkv', '.webm'];
-  
-  return (
-    videoMimeTypes.includes(file.mimetype) ||
-    videoExtensions.includes(path.extname(file.originalname).toLowerCase())
-  );
-}
-
-// Initialize database
-async function initDatabase() {
-  return await initDb();
-}
-
-// API route handler
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  try {
-    // Handle the file upload with multer
-    const multerUpload = upload.array('photos', 10); // Allow up to 10 files
-    
-    multerUpload(req, res, async function (err) {
-      if (err instanceof multer.MulterError) {
-        // A Multer error occurred when uploading
-        console.error('Multer error:', err);
-        return res.status(400).json({ error: err.message });
-      } else if (err) {
-        // An unknown error occurred
-        console.error('Unknown upload error:', err);
-        return res.status(500).json({ error: 'File upload failed' });
-      }
-      
-      // If no files were uploaded
-      if (!req.files || req.files.length === 0) {
-        return res.status(400).json({ error: 'No files were uploaded' });
-      }
+  return new Promise((resolve, reject) => {
+    upload.array('photos', 10)(req, res, async (err) => {
+      let db;
       
       try {
-        const db = await initDatabase();
-        
-        // Get form data
+        if (err) {
+          console.error('Multer error:', err);
+          res.status(400).json({ error: err.message });
+          return resolve();
+        }
+
+        // Initialize database connection after multer processing
+        db = await getDb();
+
         const { name, caption } = req.body;
-        
-        // Generate a unique group ID for this upload batch
-        const uploadGroupId = uuidv4();
-        
+        const files = req.files;
+
+        if (!files || files.length === 0) {
+          res.status(400).json({ error: 'No files uploaded' });
+          return resolve();
+        }
+
+        if (!name) {
+          res.status(400).json({ error: 'Name is required' });
+          return resolve();
+        }
+
+        // Generate a unique upload group ID
+        const uploadGroup = uuidv4();
+
         // Insert each file into the database
-        for (const file of req.files) {
-          const isVideo = isVideoFile(file);
-          
-          await db.run(
-            `INSERT INTO photos (filename, originalname, name, caption, upload_group, is_video)
-             VALUES (?, ?, ?, ?, ?, ?)`,
+        const insertPromises = files.map(async (file) => {
+          // Check if file is a video
+          const isVideo = file.mimetype.startsWith('video/') || 
+                         /\.(mp4|mov|avi|wmv|flv|mkv|webm)$/i.test(file.originalname);
+
+          return db.run(
+            `INSERT INTO photos (filename, originalname, name, caption, upload_group, uploaded_at, is_video) 
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
             [
               file.filename,
               file.originalname,
-              name || 'Anonymous',
+              name,
               caption || '',
-              uploadGroupId,
+              uploadGroup,
+              new Date().toISOString(),
               isVideo ? 1 : 0
             ]
           );
-        }
-        
-        return res.status(200).json({
-          success: true,
-          count: req.files.length,
-          message: `${req.files.length} file(s) uploaded successfully`
         });
+
+        await Promise.all(insertPromises);
+
+        res.status(200).json({
+          message: 'Files uploaded successfully',
+          count: files.length,
+          uploadGroup: uploadGroup
+        });
+
+        resolve();
+
       } catch (dbError) {
         console.error('Database error:', dbError);
-        
-        // Clean up uploaded files if database operation fails
-        for (const file of req.files) {
-          const filePath = path.join(process.cwd(), 'public', 'uploads', file.filename);
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Database operation failed' });
         }
-        
-        return res.status(500).json({ error: 'Database operation failed' });
+        resolve();
       } finally {
-        db.close();
+        // Close database connection if it exists
+        if (db) {
+          await closeDb(db);
+        }
       }
     });
-  } catch (error) {
-    console.error("Upload error:", error);
-    res.status(500).json({ error: error.message });
-  }
+  });
 }
 
-// Configure API route to handle large files
 export const config = {
   api: {
     bodyParser: false,
-    responseLimit: false,
   },
 };
