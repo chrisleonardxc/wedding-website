@@ -45,10 +45,10 @@ export default function Gallery() {
   }, [photoGroups]);
 
   return (
-    <Layout title="Wedding Photo Gallery">
+    <Layout title="Wedding Photo & Video Gallery">
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-center mb-8">
-          Our Wedding Photo Gallery
+          Our Wedding Photo & Video Gallery
         </h1>
         <p className="text-center text-gray-600 mb-10">
           Browse through the wonderful moments captured by our guests
@@ -85,7 +85,7 @@ export default function Gallery() {
             href="/photos"
             className="inline-block bg-primary hover:bg-primary-dark text-white font-bold py-2 px-6 rounded-lg transition duration-300"
           >
-            Share Your Photos
+            Share Your Photos & Videos
           </a>
         </div>
       </div>
