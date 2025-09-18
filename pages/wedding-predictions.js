@@ -207,13 +207,13 @@ export default function WeddingPredictions() {
           <div className="bg-white p-6 rounded-lg shadow-elegant mb-8">
             <h2 className="text-2xl font-serif text-center mb-4">Entry Fee</h2>
             <p className="text-center mb-6">
-              To participate in our wedding predictions game, please Venmo $5 to our best man @BestMan-Venmo with the note "Wedding Predictions".
+              To participate in our wedding predictions game, please Venmo $5 to our best man Caleb @CJHendrix4 with the note "Wedding Predictions".
             </p>
             <div className="flex justify-center mb-6">
               <img 
                 src="/images/venmo-qr.jpg" 
                 alt="Venmo QR Code" 
-                className="w-48 h-48 object-contain"
+                className="w-56 h-56 md:w-72 md:h-72 object-contain"
               />
             </div>
             <form onSubmit={handleNameSubmit} className="max-w-md mx-auto">

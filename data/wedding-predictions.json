@@ -12,14 +12,20 @@
   },
   {
     "id": 2,
-    "question": "What will be the flavor of our wedding cake?",
-    "type": "multiple-choice",
+    "question": "What flavors of cake will we have in our wedding cake? Pick all that apply:",
+    "type": "multiple-select",
     "options": [
       "Vanilla",
       "Chocolate",
       "Red Velvet",
+      "Marble",
+      "Carrot",
+      "Confetti",
+      "Almond",
       "Lemon",
-      "Marble"
+      "Strawberry",
+      "Coffee",
+      "Coconut"
     ]
   },
   {
@@ -46,8 +52,9 @@
   },
   {
     "id": 7,
-    "question": "What song will play for our first dance?",
-    "type": "text"
+    "question": "What time will the ceremony actually start?",
+    "type": "text",
+    "placeholder": "Format: HH:MM PM/AM"
   },
   {
     "id": 8,
@@ -60,40 +67,24 @@
   },
   {
     "id": 9,
-    "question": "What time will the ceremony actually start?",
-    "type": "text",
-    "placeholder": "Format: HH:MM PM/AM"
-  },
-  {
-    "id": 10,
-    "question": "Who will catch the bouquet?",
-    "type": "text"
-  },
-  {
-    "id": 11,
-    "question": "How many photos will be taken by the photographer?",
-    "type": "number"
-  },
-  {
-    "id": 12,
-    "question": "What will be the most popular drink at the bar?",
-    "type": "text"
-  },
-  {
-    "id": 13,
     "question": "How long will our first kiss as a married couple last?",
     "type": "text",
     "placeholder": "Format: X seconds"
   },
   {
-    "id": 14,
-    "question": "What time will the last guest leave?",
+    "id": 10,
+    "question": "What time will the bride and groom leave the reception?",
     "type": "text",
     "placeholder": "Format: HH:MM PM/AM"
   },
   {
-    "id": 15,
-    "question": "Will someone make an unexpected toast?",
+    "id": 11,
+    "question": "Who will be the first on the dance floor (besides the bride and groom)?",
+    "type": "text"
+  },
+  {
+    "id": 12,
+    "question": "Will anyone fall or trip during the night?",
     "type": "multiple-choice",
     "options": [
       "Yes",
@@ -101,22 +92,71 @@
     ]
   },
   {
+    "id": 13,
+    "question": "Which speech will be the longest?",
+    "type": "multiple-choice",
+    "options": [
+      "Best Man",
+      "Maid of Honor",
+      "Parents",
+      "Other surprise toast"
+    ]
+  },
+  {
+    "id": 14,
+    "question": "How long will the maid of honor’s speech last?",
+    "type": "number",
+    "placeholder": "Minutes"
+  },
+  {
+    "id": 15,
+    "question": "What will be the most popular drink at the bar?",
+    "type": "multiple-choice",
+    "options": [
+      "Beer",
+      "Wine",
+      "Gin Cocktail",
+      "Whiskey",
+      "Vodka Cocktail",
+      "Other"
+    ]
+  },
+  {
     "id": 16,
-    "question": "What will be the most memorable moment of the wedding?",
-    "type": "text"
+    "question": "What will be the length of the groom’s speech?",
+    "type": "number",
+    "placeholder": "Minutes"
   },
   {
     "id": 17,
-    "question": "How many tiers will our wedding cake have?",
-    "type": "number"
+    "question": "Will anyone clink glasses to make the couple kiss?",
+    "type": "multiple-choice",
+    "options": [
+      "Yes",
+      "No"
+    ]
   },
   {
     "id": 18,
-    "question": "What color will the majority of the bridesmaids be wearing?",
+    "question": "Who will be the last person on the dance floor?",
     "type": "text"
   },
   {
     "id": 19,
+    "question": "How many desserts (not counting the cake) will be offered?",
+    "type": "number"
+  },
+  {
+    "id": 20,
+    "question": "Will the bride or groom be lifted up during dancing?",
+    "type": "multiple-choice",
+    "options": [
+      "Yes",
+      "No"
+    ]
+  },
+  {
+    "id": 21,
     "question": "Will there be any wedding crashers?",
     "type": "multiple-choice",
     "options": [
@@ -125,9 +165,8 @@
     ]
   },
   {
-    "id": 20,
-    "question": "What time will the bride and groom leave the reception?",
-    "type": "text",
-    "placeholder": "Format: HH:MM PM/AM"
+    "id": 22,
+    "question": "How many tiers will our wedding cake have?",
+    "type": "number"
   }
 ]

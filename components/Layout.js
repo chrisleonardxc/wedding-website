@@ -38,6 +38,12 @@ export default function Layout({ children, title = "Wedding Website" }) {
               >
                 Upload Photos
               </Link>
+              <Link
+                href="/wedding-predictions"
+                className="text-white hover:text-white hover:bg-white hover:bg-opacity-20 transition duration-300 px-3 py-2 rounded"
+              >
+                Predictions
+              </Link>
             </div>
           </div>
         </nav>

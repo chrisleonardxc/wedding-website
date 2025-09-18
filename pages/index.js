@@ -72,7 +72,7 @@ export default function Home() {
       {/* Navigation Cards */}
       <div className="py-16 bg-primary-light bg-opacity-20">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             <Link
               href="/gallery"
               className="group bg-white hover:bg-primary-light rounded-lg overflow-hidden shadow-elegant transition-all duration-300 transform hover:-translate-y-1"
@@ -120,6 +120,29 @@ export default function Home() {
                 <p className="text-primary">Upload your favorite moments</p>
               </div>
             </Link>
+
+            <Link
+              href="/wedding-predictions"
+              className="group bg-white hover:bg-white rounded-lg overflow-hidden shadow-elegant transition-all duration-300 transform hover:-translate-y-1"
+            >
+              <div className="h-48 overflow-hidden flex items-center justify-center bg-primary-light bg-opacity-10">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  width="256" 
+                  height="200" 
+                  viewBox="0 0 24 24"
+                  className="transition-transform duration-500 group-hover:scale-110 fill-primary"
+                >
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
+                </svg>
+              </div>
+              <div className="p-6 text-center">
+                <h3 className="font-serif text-xl font-semibold text-primary-dark mb-2">
+                  Wedding Predictions
+                </h3>
+                <p className="text-primary">Make your predictions and win prizes!</p>
+              </div>
+            </Link>
           </div>
         </div>
       </div>
@@ -132,10 +155,11 @@ export default function Home() {
 
         <div className="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-elegant">
           <p className="text-lg text-primary-dark leading-relaxed">
-            We met in 2018 during a hiking trip with mutual friends. After three
-            years of adventures together, Chris proposed on the same mountain
-            where we first met. Now we're excited to begin our greatest
-            adventure yet - marriage!
+            It was the weekend of the 4th of July, 2021. Sydney and Chris, aided by mutual friends, met up on 2 boats floating atop Lake Gaston. 
+            Chris dazzled Sydney with his incredible (if theoretical) wake surfing abilities. Sydney was so starstruck, that she pleaded with him for a first date, which he readily accepted.
+            Through the next 4 years, they traveled together from city to city. First in Chapel Hill for Sydney's pharmacy school, to Chris's house in Raleigh for rotations, to San Francisco for Sydney's first job in cancer research.
+            There, Chris proposed to the love of his life, and eventually the couple made their way back to the east coast, buying their first home together in Maryland.
+            Now they await the next step in their journey with you, to be married and spend the rest of their lives together.
           </p>
 
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
