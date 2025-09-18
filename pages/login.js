@@ -67,7 +67,7 @@ export default function Login() {
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-500">
-          <p>Need the password? Contact Sydney or Chris</p>
+          <p>Need the password? It's the Groom's first name! All 5 letters lower case.</p>
         </div>
       </div>
     </div>
