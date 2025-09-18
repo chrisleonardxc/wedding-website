@@ -68,8 +68,8 @@
   {
     "id": 9,
     "question": "How long will our first kiss as a married couple last?",
-    "type": "text",
-    "placeholder": "Format: X seconds"
+    "type": "number",
+    "placeholder": "Seconds"
   },
   {
     "id": 10,
@@ -123,7 +123,7 @@
   },
   {
     "id": 16,
-    "question": "What will be the length of the groom’s speech?",
+    "question": "What will be the length of the bride and groom’s speech?",
     "type": "number",
     "placeholder": "Minutes"
   },

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
+import Link from 'next/link';
 
 export default function WeddingPredictions() {
   const [predictions, setPredictions] = useState([]);
@@ -138,7 +139,15 @@ export default function WeddingPredictions() {
     setShowQuestions(false);
   };
 
+  // Replace the renderQuestionInput function with this simplified version:
+
   const renderQuestionInput = (question) => {
+    // Check if this is a time-related question
+    const isTimeQuestion = (question.placeholder && question.placeholder.includes('HH:MM')) ||
+                          question.question.toLowerCase().includes('what time') ||
+                          question.question.toLowerCase().includes('time will') ||
+                          (question.type === 'text' && question.placeholder && question.placeholder.includes('PM/AM'));
+
     switch (question.type) {
       case 'multiple-choice':
         return (
@@ -170,6 +179,61 @@ export default function WeddingPredictions() {
           />
         );
       case 'text':
+        if (isTimeQuestion) {
+          // Convert stored time format to HTML time input format and vice versa
+          const convertToTimeInput = (timeStr) => {
+            if (!timeStr) return '';
+            const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+            if (match) {
+              let hour = parseInt(match[1]);
+              const minute = match[2];
+              const ampm = match[3].toUpperCase();
+              
+              // Convert to 24-hour format for HTML time input
+              if (ampm === 'PM' && hour !== 12) hour += 12;
+              if (ampm === 'AM' && hour === 12) hour = 0;
+              
+              return `${hour.toString().padStart(2, '0')}:${minute}`;
+            }
+            return '';
+          };
+
+          const convertFromTimeInput = (timeStr) => {
+            if (!timeStr) return '';
+            const [hour24, minute] = timeStr.split(':');
+            let hour = parseInt(hour24);
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            
+            // Convert to 12-hour format
+            if (hour === 0) hour = 12;
+            else if (hour > 12) hour -= 12;
+            
+            return `${hour}:${minute} ${ampm}`;
+          };
+
+          return (
+            <div className="mt-2">
+              <input
+                type="time"
+                value={convertToTimeInput(answers[question.id])}
+                onChange={(e) => {
+                  const formattedTime = convertFromTimeInput(e.target.value);
+                  handleAnswerChange(question.id, formattedTime);
+                }}
+                className="p-2 border rounded-md"
+              />
+            </div>
+          );
+        }
+        return (
+          <input
+            type="text"
+            value={answers[question.id] || ''}
+            onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+            className="mt-2 w-full p-2 border rounded-md"
+            placeholder={question.placeholder || "Enter your prediction"}
+          />
+        );
       default:
         return (
           <input
@@ -280,6 +344,20 @@ export default function WeddingPredictions() {
                 <h2 className="text-2xl font-serif mb-4">Thank You!</h2>
                 <p className="mb-4">Your predictions have been submitted successfully.</p>
                 <p className="mb-6">Winners will be announced after the wedding!</p>
+                
+                {/* Add this new section */}
+                <div className="border-t border-gray-200 pt-6 mt-6">
+                  <h3 className="text-xl font-serif mb-3">View All Predictions</h3>
+                  <p className="mb-4 text-gray-600">
+                    See what everyone else is predicting!
+                  </p>
+                  <Link
+                    href="/predictions-results"
+                    className="inline-block py-2 px-6 bg-secondary text-white rounded-md hover:bg-secondary-dark transition duration-300 mr-4"
+                  >
+                    View Predictions
+                  </Link>
+                </div>
                 
                 <div className="border-t border-gray-200 pt-6 mt-6">
                   <h3 className="text-xl font-serif mb-3">Want to submit another entry?</h3>

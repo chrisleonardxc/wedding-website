@@ -82,8 +82,8 @@ async function getPredictionQuestions() {
         {
           id: 13,
           question: "How long will our first kiss as a married couple last?",
-          type: "text",
-          placeholder: "Format: X seconds"
+          type: "number",
+          placeholder: "Seconds"
         },
         {
           id: 14,
