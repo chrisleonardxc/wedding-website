@@ -8,7 +8,7 @@ services:
     environment:
       - NODE_ENV=production
       - ADMIN_PASSWORD=REDACTED # http://www.leonard-stocks.com/api/admin/predictions?password=REDACTED&format=csv
-      - SITE_PASSWORD=REDACTED # http://www.leonard-stocks.com/qr-login/REDACTED
+      - SITE_PASSWORD=REDACTED # http://www.leonard-stocks.com/api/auth/qr-login?token=REDACTED
     volumes:
       - ./uploads:/app/public/uploads
       - ./data:/app/data  # Add this line!
