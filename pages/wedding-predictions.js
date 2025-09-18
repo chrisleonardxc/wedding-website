@@ -89,7 +89,14 @@ export default function WeddingPredictions() {
     }
 
     // Check if all questions are answered
-    const unansweredQuestions = predictions.filter(q => !answers[q.id]);
+    const unansweredQuestions = predictions.filter(q => {
+      const answer = answers[q.id];
+      if (q.type === 'multiple-select') {
+        return !answer || answer.length === 0;
+      }
+      return !answer;
+    });
+    
     if (unansweredQuestions.length > 0) {
       setError(`Please answer all questions before submitting (${unansweredQuestions.length} remaining)`);
       return;
@@ -139,9 +146,10 @@ export default function WeddingPredictions() {
     setShowQuestions(false);
   };
 
-  // Replace the renderQuestionInput function with this simplified version:
-
   const renderQuestionInput = (question) => {
+    // Add debugging
+    console.log('Question type:', question.type, 'Question ID:', question.id);
+    
     // Check if this is a time-related question
     const isTimeQuestion = (question.placeholder && question.placeholder.includes('HH:MM')) ||
                           question.question.toLowerCase().includes('what time') ||
@@ -150,6 +158,7 @@ export default function WeddingPredictions() {
 
     switch (question.type) {
       case 'multiple-choice':
+        console.log('Rendering multiple-choice for question', question.id);
         return (
           <div className="mt-2">
             {question.options.map((option, index) => (
@@ -166,6 +175,41 @@ export default function WeddingPredictions() {
                 <label htmlFor={`question-${question.id}-option-${index}`}>{option}</label>
               </div>
             ))}
+          </div>
+        );
+      case 'multiple-select':
+        console.log('Rendering multiple-select for question', question.id);
+        return (
+          <div className="mt-2">
+            {question.options.map((option, index) => {
+              const currentAnswers = answers[question.id] || [];
+              const isChecked = currentAnswers.includes(option);
+              
+              return (
+                <div key={index} className="flex items-center mb-2">
+                  <input
+                    type="checkbox"
+                    id={`question-${question.id}-option-${index}`}
+                    value={option}
+                    checked={isChecked}
+                    onChange={(e) => {
+                      const currentAnswers = answers[question.id] || [];
+                      let newAnswers;
+                      
+                      if (e.target.checked) {
+                        newAnswers = [...currentAnswers, option];
+                      } else {
+                        newAnswers = currentAnswers.filter(answer => answer !== option);
+                      }
+                      
+                      handleAnswerChange(question.id, newAnswers);
+                    }}
+                    className="mr-2"
+                  />
+                  <label htmlFor={`question-${question.id}-option-${index}`}>{option}</label>
+                </div>
+              );
+            })}
           </div>
         );
       case 'number':
@@ -235,6 +279,7 @@ export default function WeddingPredictions() {
           />
         );
       default:
+        console.log('Falling to default case for question', question.id, 'with type', question.type);
         return (
           <input
             type="text"
