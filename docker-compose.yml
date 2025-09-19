@@ -1,20 +1,35 @@
-version: '3.8'
-
 services:
   wedding-website:
     build: .
     ports:
       - "3000:3000"
     environment:
+      - PUID=1026
+      - PGID=100
       - NODE_ENV=production
-      - ADMIN_PASSWORD=REDACTED # http://www.leonard-stocks.com/api/admin/predictions?password=REDACTED&format=csv
-      - SITE_PASSWORD=REDACTED # http://www.leonard-stocks.com/api/auth/qr-login?token=REDACTED
+      - ADMIN_PASSWORD=REDACTED
+      - SITE_PASSWORD=REDACTED
     volumes:
-      - ./uploads:/app/public/uploads
-      - ./data:/app/data  # Add this line!
+      - uploads:/app/public/uploads:rw,nocopy
+      - data:/app/data:rw,nocopy
     restart: unless-stopped
     deploy:
       resources:
         reservations:
           memory: 10G
           cpus: '1.0'
+
+volumes:
+  uploads:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.0.189,rw
+      device: ":/volume1/homes/chrisxc/Photos/Wedding/uploads"
+
+  data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.0.189,rw
+      device: ":/volume1/homes/chrisxc/Photos/Wedding/data"
