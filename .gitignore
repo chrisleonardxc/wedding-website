@@ -68,3 +68,10 @@ Thumbs.db
 *.log
 *.tmp
 .cache/
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+*.dockerfile
+Dockerfile.dev
+.docker/
