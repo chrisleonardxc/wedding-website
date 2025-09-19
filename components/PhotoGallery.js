@@ -1,11 +1,12 @@
+import { syncLikesToServer } from "../lib/likeSync";
 import { useState, useEffect } from "react";
+import LazyMedia from "./LazyMedia"; // Updated import
 import {
   isPhotoLiked,
   togglePhotoLike,
   toggleGroupLike,
   getLikedPhotos,
 } from "../lib/galleryUtils";
-import { syncLikesToServer } from "../lib/likeSync";
 
 export default function PhotoGallery({ photoGroups }) {
   const [selectedGroup, setSelectedGroup] = useState(null);
@@ -272,19 +273,6 @@ export default function PhotoGallery({ photoGroups }) {
 
     // Save to localStorage and queue for server sync
     toggleGroupLike(photoIds, !anyLiked);
-
-    // Update the total_likes in the UI immediately for better UX
-    const updatedPhotoGroups = photoGroups.map((g) => {
-      if (g.id === group.id) {
-        return {
-          ...g,
-          total_likes:
-            (g.total_likes || 0) +
-            (!anyLiked ? photoIds.length : -photoIds.length),
-        };
-      }
-      return g;
-    });
   };
 
   // Check if a photo is liked
@@ -316,20 +304,21 @@ export default function PhotoGallery({ photoGroups }) {
               {/* Handle video-only groups differently */}
               {group.isVideoOnly ? (
                 <div className="w-full h-full relative">
-                  <video
+                  <LazyMedia
                     src={group.url}
+                    isVideo={true}
                     className="w-full h-full object-cover"
-                    muted
-                    playsInline
-                    preload="metadata"
-                    onMouseEnter={(e) => e.target.play()}
-                    onMouseLeave={(e) => {
-                      e.target.pause();
-                      e.target.currentTime = 0;
+                    videoProps={{
+                      muted: true,
+                      playsInline: true,
+                      preload: "metadata",
+                      onMouseEnter: (e) => e.target.play(),
+                      onMouseLeave: (e) => {
+                        e.target.pause();
+                        e.target.currentTime = 0;
+                      }
                     }}
-                  >
-                    Your browser does not support the video tag.
-                  </video>
+                  />
                   {/* Video overlay indicator */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="bg-black bg-opacity-50 rounded-full p-3">
@@ -349,10 +338,11 @@ export default function PhotoGallery({ photoGroups }) {
                   </div>
                 </div>
               ) : (
-                <img
+                <LazyMedia
                   src={group.url}
                   alt={group.caption || "Wedding photo"}
                   className="w-full h-full object-cover"
+                  isVideo={false}
                   onError={(e) => {
                     // Fallback if image fails to load
                     e.target.src = '/placeholder-image.jpg';
@@ -461,23 +451,25 @@ export default function PhotoGallery({ photoGroups }) {
               <>
                 <div className="relative">
                   {groupPhotos[currentPhotoIndex].is_video ? (
-                    <video
+                    <LazyMedia
                       src={groupPhotos[currentPhotoIndex].url}
+                      isVideo={true}
                       className="w-full max-h-[70vh] object-contain"
-                      controls
-                      autoPlay
-                      playsInline
-                    >
-                      Your browser does not support the video tag.
-                    </video>
+                      videoProps={{
+                        controls: true,
+                        autoPlay: true,
+                        playsInline: true
+                      }}
+                    />
                   ) : (
-                    <img
+                    <LazyMedia
                       src={groupPhotos[currentPhotoIndex].url}
                       alt={
                         groupPhotos[currentPhotoIndex].caption ||
                         "Wedding photo"
                       }
                       className="w-full max-h-[70vh] object-contain"
+                      isVideo={false}
                     />
                   )}
 
