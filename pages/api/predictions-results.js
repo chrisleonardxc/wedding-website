@@ -56,6 +56,22 @@ export default async function handler(req, res) {
           acc[option] = answers.filter(answer => answer === option).length;
           return acc;
         }, {});
+      } else if (question.type === 'multiple-select') {
+        // For multiple-select, count how many times each option was selected
+        aggregatedData = question.options.reduce((acc, option) => {
+          acc[option] = 0;
+          return acc;
+        }, {});
+        
+        answers.forEach(answer => {
+          if (Array.isArray(answer)) {
+            answer.forEach(selectedOption => {
+              if (aggregatedData.hasOwnProperty(selectedOption)) {
+                aggregatedData[selectedOption]++;
+              }
+            });
+          }
+        });
       } else if (question.type === 'number') {
         // For numbers, we'll show distribution and average
         const numericAnswers = answers.map(a => parseFloat(a)).filter(a => !isNaN(a));
@@ -67,10 +83,10 @@ export default async function handler(req, res) {
           count: numericAnswers.length
         };
       } else {
-        // For text answers, group by exact matches
+        // For text answers, group by exact matches (case-insensitive)
         const answerCounts = {};
         answers.forEach(answer => {
-          const normalizedAnswer = answer.toLowerCase().trim();
+          const normalizedAnswer = answer.toString().toLowerCase().trim();
           answerCounts[normalizedAnswer] = (answerCounts[normalizedAnswer] || 0) + 1;
         });
         aggregatedData = answerCounts;
@@ -78,7 +94,9 @@ export default async function handler(req, res) {
 
       return {
         ...question,
-        totalResponses: answers.length,
+        totalResponses: question.type === 'multiple-select' 
+          ? answers.length // For multiple-select, count participants who answered
+          : answers.length,
         aggregatedData
       };
     });
