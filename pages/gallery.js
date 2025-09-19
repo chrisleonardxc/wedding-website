@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
+import { getLikedPhotos } from "../lib/galleryUtils";
 import Layout from "../components/Layout";
 import PhotoGallery from "../components/PhotoGallery";
-import { getLikedPhotos } from "../lib/galleryUtils";
 
 export default function Gallery() {
   const [photoGroups, setPhotoGroups] = useState([]);
@@ -50,6 +50,16 @@ export default function Gallery() {
         <h1 className="text-3xl font-bold text-center mb-8">
           Our Wedding Photo & Video Gallery
         </h1>
+        
+        <div className="text-center mb-8">
+          <a
+            href="/photos"
+            className="inline-block bg-primary hover:bg-primary-dark text-white font-bold py-3 px-6 rounded-lg transition duration-300 shadow-lg"
+          >
+            Share Your Photos & Videos
+          </a>
+        </div>
+
         <p className="text-center text-gray-600 mb-10">
           Browse through the wonderful moments captured by our guests
         </p>
@@ -79,15 +89,6 @@ export default function Gallery() {
         ) : (
           <PhotoGallery photoGroups={photoGroups} />
         )}
-
-        <div className="mt-10 text-center">
-          <a
-            href="/photos"
-            className="inline-block bg-primary hover:bg-primary-dark text-white font-bold py-2 px-6 rounded-lg transition duration-300"
-          >
-            Share Your Photos & Videos
-          </a>
-        </div>
       </div>
     </Layout>
   );
