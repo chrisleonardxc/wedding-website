@@ -146,74 +146,49 @@ export default function PhotoGallery({ photoGroups }) {
       
       const blob = await response.blob();
       
-      // Method 1: Try Web Share API first (works great on iOS)
-      if (navigator.share && navigator.canShare) {
+      if (isIOS) {
+        // iOS-specific handling - prioritize Web Share API for "Save to Photos"
+        if (navigator.share && navigator.canShare) {
+          const fileName = currentPhoto.originalname || 
+            `wedding-${currentPhoto.is_video ? "video" : "photo"}-${currentPhoto.name.replace(/\s+/g, "-")}-${currentPhotoIndex + 1}${currentPhoto.is_video ? ".mp4" : ".jpg"}`;
+          
+          const file = new File([blob], fileName, { type: blob.type });
+          
+          if (navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: 'Wedding Photo',
+                text: currentPhoto.caption || 'Wedding moment'
+              });
+              return; // Success! Stop here - don't try other methods
+            } catch (shareError) {
+              if (shareError.name !== 'AbortError') {
+                console.log('Share failed:', shareError);
+                // Only continue to fallback if it wasn't just cancelled by user
+                throw shareError;
+              }
+              // If user cancelled, just return without trying other methods
+              return;
+            }
+          }
+        }
+        
+        // iOS fallback: Open in new tab with instructions (no download attribute)
+        // const newWindow = window.open(photoUrl, '_blank');
+        // if (!newWindow) {
+        //   alert('Please allow popups and try again, or long-press the image to save to Photos');
+        // }
+        
+      } else {
+        // Android and other mobile browsers - use download link
+        const url = URL.createObjectURL(blob);
         const fileName = currentPhoto.originalname || 
           `wedding-${currentPhoto.is_video ? "video" : "photo"}-${currentPhoto.name.replace(/\s+/g, "-")}-${currentPhotoIndex + 1}${currentPhoto.is_video ? ".mp4" : ".jpg"}`;
         
-        const file = new File([blob], fileName, { type: blob.type });
-        
-        if (navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({
-              files: [file],
-              title: 'Wedding Photo',
-              text: currentPhoto.caption || 'Wedding moment'
-            });
-            return; // Success! User can choose "Save to Photos" from the share menu
-          } catch (shareError) {
-            console.log('Share cancelled or failed:', shareError);
-            // Continue to next method
-          }
-        }
-      }
-
-      // Method 2: Create a temporary link that triggers download/save
-      const url = URL.createObjectURL(blob);
-      const fileName = currentPhoto.originalname || 
-        `wedding-${currentPhoto.is_video ? "video" : "photo"}-${currentPhoto.name.replace(/\s+/g, "-")}-${currentPhotoIndex + 1}${currentPhoto.is_video ? ".mp4" : ".jpg"}`;
-      
-      // For iOS Safari, we can create a link that when clicked will show the save options
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      
-      // On iOS, this will trigger the share sheet where users can save to Photos
-      if (isIOS) {
-        // Create a temporary image element to trigger the long-press save behavior
-        const tempImg = document.createElement(currentPhoto.is_video ? 'video' : 'img');
-        tempImg.src = url;
-        tempImg.style.position = 'fixed';
-        tempImg.style.top = '-9999px';
-        tempImg.style.left = '-9999px';
-        tempImg.style.width = '1px';
-        tempImg.style.height = '1px';
-        
-        document.body.appendChild(tempImg);
-        
-        // For images, we can programmatically trigger a right-click context menu
-        if (!currentPhoto.is_video) {
-          const event = new MouseEvent('contextmenu', {
-            bubbles: true,
-            cancelable: true,
-            view: window,
-            button: 2
-          });
-          tempImg.dispatchEvent(event);
-        }
-        
-        // Clean up after a short delay
-        setTimeout(() => {
-          document.body.removeChild(tempImg);
-          URL.revokeObjectURL(url);
-        }, 1000);
-        
-        // Also try the download link as fallback
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } else {
-        // Android and other mobile browsers
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -236,10 +211,9 @@ export default function PhotoGallery({ photoGroups }) {
   } catch (error) {
     console.error('Download failed:', error);
     
-    // Ultimate fallback: open in new tab with instructions
+    // Ultimate fallback: open in new tab
     const newWindow = window.open(photoUrl, '_blank');
     if (!newWindow) {
-      // If popup blocked, show an alert with instructions
       alert('Please allow popups and try again, or long-press the image to save to Photos');
     }
   }
