@@ -129,36 +129,121 @@ export default function PhotoGallery({ photoGroups }) {
     }
   };
 
-  const downloadCurrentPhoto = () => {
-    if (groupPhotos.length === 0 || !groupPhotos[currentPhotoIndex]) return;
+  const downloadCurrentPhoto = async () => {
+  if (groupPhotos.length === 0 || !groupPhotos[currentPhotoIndex]) return;
 
-    const currentPhoto = groupPhotos[currentPhotoIndex];
-    const photoUrl = currentPhoto.url;
+  const currentPhoto = groupPhotos[currentPhotoIndex];
+  const photoUrl = currentPhoto.url;
 
-    // Create a link element
-    const link = document.createElement("a");
-    link.href = photoUrl;
+  try {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-    // Set the download attribute with a filename
-    // Use original filename if available, or create one based on caption/name
-    const fileName =
-      currentPhoto.originalname ||
-      `wedding-${
-        currentPhoto.is_video ? "video" : "photo"
-      }-${currentPhoto.name.replace(/\s+/g, "-")}-${currentPhotoIndex + 1}${
-        currentPhoto.is_video ? ".mp4" : ".jpg"
-      }`;
-    link.download = fileName;
+    if (isMobile) {
+      // Fetch the image as a blob
+      const response = await fetch(photoUrl);
+      if (!response.ok) throw new Error('Failed to fetch image');
+      
+      const blob = await response.blob();
+      
+      // Method 1: Try Web Share API first (works great on iOS)
+      if (navigator.share && navigator.canShare) {
+        const fileName = currentPhoto.originalname || 
+          `wedding-${currentPhoto.is_video ? "video" : "photo"}-${currentPhoto.name.replace(/\s+/g, "-")}-${currentPhotoIndex + 1}${currentPhoto.is_video ? ".mp4" : ".jpg"}`;
+        
+        const file = new File([blob], fileName, { type: blob.type });
+        
+        if (navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'Wedding Photo',
+              text: currentPhoto.caption || 'Wedding moment'
+            });
+            return; // Success! User can choose "Save to Photos" from the share menu
+          } catch (shareError) {
+            console.log('Share cancelled or failed:', shareError);
+            // Continue to next method
+          }
+        }
+      }
 
-    // Append to the document
-    document.body.appendChild(link);
-
-    // Trigger the download
-    link.click();
-
-    // Clean up
-    document.body.removeChild(link);
-  };
+      // Method 2: Create a temporary link that triggers download/save
+      const url = URL.createObjectURL(blob);
+      const fileName = currentPhoto.originalname || 
+        `wedding-${currentPhoto.is_video ? "video" : "photo"}-${currentPhoto.name.replace(/\s+/g, "-")}-${currentPhotoIndex + 1}${currentPhoto.is_video ? ".mp4" : ".jpg"}`;
+      
+      // For iOS Safari, we can create a link that when clicked will show the save options
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      
+      // On iOS, this will trigger the share sheet where users can save to Photos
+      if (isIOS) {
+        // Create a temporary image element to trigger the long-press save behavior
+        const tempImg = document.createElement(currentPhoto.is_video ? 'video' : 'img');
+        tempImg.src = url;
+        tempImg.style.position = 'fixed';
+        tempImg.style.top = '-9999px';
+        tempImg.style.left = '-9999px';
+        tempImg.style.width = '1px';
+        tempImg.style.height = '1px';
+        
+        document.body.appendChild(tempImg);
+        
+        // For images, we can programmatically trigger a right-click context menu
+        if (!currentPhoto.is_video) {
+          const event = new MouseEvent('contextmenu', {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+            button: 2
+          });
+          tempImg.dispatchEvent(event);
+        }
+        
+        // Clean up after a short delay
+        setTimeout(() => {
+          document.body.removeChild(tempImg);
+          URL.revokeObjectURL(url);
+        }, 1000);
+        
+        // Also try the download link as fallback
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        // Android and other mobile browsers
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+      
+    } else {
+      // Desktop behavior - standard download
+      const fileName = currentPhoto.originalname || 
+        `wedding-${currentPhoto.is_video ? "video" : "photo"}-${currentPhoto.name.replace(/\s+/g, "-")}-${currentPhotoIndex + 1}${currentPhoto.is_video ? ".mp4" : ".jpg"}`;
+      
+      const link = document.createElement("a");
+      link.href = photoUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    
+  } catch (error) {
+    console.error('Download failed:', error);
+    
+    // Ultimate fallback: open in new tab with instructions
+    const newWindow = window.open(photoUrl, '_blank');
+    if (!newWindow) {
+      // If popup blocked, show an alert with instructions
+      alert('Please allow popups and try again, or long-press the image to save to Photos');
+    }
+  }
+};
 
   // Handle liking/unliking a photo
   const toggleLike = (photoId, event) => {
@@ -648,10 +733,10 @@ export default function PhotoGallery({ photoGroups }) {
                           d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                         />
                       </svg>
-                      Download{" "}
-                      {groupPhotos[currentPhotoIndex].is_video
-                        ? "Video"
-                        : "Photo"}
+                      { /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+  ? `Save ${groupPhotos[currentPhotoIndex].is_video ? "Video" : "Photo"}` 
+  : `Download ${groupPhotos[currentPhotoIndex].is_video ? "Video" : "Photo"}`
+}
                     </button>
 
                     {/* Like button as a regular button too */}
