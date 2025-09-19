@@ -13,3 +13,8 @@ services:
       - ./uploads:/app/public/uploads
       - ./data:/app/data  # Add this line!
     restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          memory: 10G
+          cpus: '1.0'
