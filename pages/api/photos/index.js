@@ -10,6 +10,7 @@ export default async function handler(req, res) {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 20;
       const offset = (page - 1) * limit;
+      const sortBy = req.query.sortBy || 'newest'; // 'newest', 'likes'
       
       // Ensure the likes table exists
       await db.exec(`
@@ -28,13 +29,24 @@ export default async function handler(req, res) {
       `);
       const totalGroups = totalGroupsResult.total;
       
-      // Get paginated photo groups by getting distinct upload_groups first
+      // Determine sort order based on sortBy parameter
+      let orderByClause;
+      if (sortBy === 'likes') {
+        orderByClause = 'group_total_likes DESC, group_uploaded_at DESC';
+      } else {
+        orderByClause = 'group_uploaded_at DESC';
+      }
+      
+      // Get paginated photo groups with like counts
       const groupsQuery = `
-        SELECT DISTINCT upload_group, 
-               MIN(uploaded_at) as group_uploaded_at
-        FROM photos 
+        SELECT 
+          upload_group,
+          MIN(uploaded_at) as group_uploaded_at,
+          COALESCE(SUM(l.likes_count), 0) as group_total_likes
+        FROM photos p
+        LEFT JOIN photo_likes l ON p.id = l.photo_id
         GROUP BY upload_group
-        ORDER BY group_uploaded_at DESC
+        ORDER BY ${orderByClause}
         LIMIT ? OFFSET ?
       `;
       
@@ -48,7 +60,8 @@ export default async function handler(req, res) {
             totalPages: Math.ceil(totalGroups / limit),
             totalGroups: totalGroups,
             hasNextPage: false,
-            hasPrevPage: page > 1
+            hasPrevPage: page > 1,
+            sortBy: sortBy
           }
         });
       }
@@ -77,7 +90,7 @@ export default async function handler(req, res) {
       // Group photos by upload group
       const photoGroups = groupPhotosByUploadGroup(processedPhotos);
       
-      // Calculate total likes for each group
+      // Calculate total likes for each group and sort according to the request
       const groupsWithLikes = photoGroups.map(group => {
         const totalLikes = group.photos.reduce((sum, photo) => sum + (photo.likes_count || 0), 0);
         return {
@@ -85,6 +98,18 @@ export default async function handler(req, res) {
           total_likes: totalLikes
         };
       });
+      
+      // Apply sorting to the grouped photos
+      if (sortBy === 'likes') {
+        groupsWithLikes.sort((a, b) => {
+          if (b.total_likes !== a.total_likes) {
+            return b.total_likes - a.total_likes;
+          }
+          return new Date(b.uploaded_at) - new Date(a.uploaded_at);
+        });
+      } else {
+        groupsWithLikes.sort((a, b) => new Date(b.uploaded_at) - new Date(a.uploaded_at));
+      }
       
       // Calculate pagination info
       const totalPages = Math.ceil(totalGroups / limit);
@@ -97,7 +122,8 @@ export default async function handler(req, res) {
           totalGroups: totalGroups,
           hasNextPage: page < totalPages,
           hasPrevPage: page > 1,
-          limit: limit
+          limit: limit,
+          sortBy: sortBy
         }
       });
     } catch (error) {
