@@ -1,3 +1,4 @@
+
 import { syncLikesToServer } from "../lib/likeSync";
 import { useState, useEffect } from "react";
 import LazyMedia from "./LazyMedia"; // Updated import
@@ -8,12 +9,15 @@ import {
   getLikedPhotos,
 } from "../lib/galleryUtils";
 
-export default function PhotoGallery({ photoGroups }) {
+// Add these new props to the component function
+export default function PhotoGallery({ photoGroups, onGroupDeleted, onPhotoDeleted }) {
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [groupPhotos, setGroupPhotos] = useState([]);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [likedPhotos, setLikedPhotos] = useState({});
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
 
   // Load liked photos from localStorage on component mount
   useEffect(() => {
@@ -289,14 +293,157 @@ export default function PhotoGallery({ photoGroups }) {
     return group.photos.some((photo) => isLiked(photo.id));
   };
 
+  // Add this function after the existing functions like toggleLike
+const deleteGroup = async (group) => {
+  setDeleteLoading(true);
+  try {
+    const response = await fetch('/api/photos/delete', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ groupId: group.id }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete group');
+    }
+
+    const result = await response.json();
+    console.log('Group deleted:', result);
+
+    // Close modal if it was open
+    if (selectedGroup && selectedGroup.id === group.id) {
+      closeModal();
+    }
+
+    // Notify parent component
+    if (onGroupDeleted) {
+      onGroupDeleted(group.id);
+    }
+
+    setShowDeleteConfirm(null);
+  } catch (error) {
+    console.error('Error deleting group:', error);
+    alert('Failed to delete group. Please try again.');
+  } finally {
+    setDeleteLoading(false);
+  }
+};
+
+// Add this function after deleteGroup
+const deletePhoto = async (photoId) => {
+  setDeleteLoading(true);
+  try {
+    const response = await fetch(`/api/photos/${selectedGroup.id}/delete`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ photoId }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete photo');
+    }
+
+    const result = await response.json();
+    console.log('Photo deleted:', result);
+
+    // Update local state
+    const updatedPhotos = groupPhotos.filter(photo => photo.id !== photoId);
+    setGroupPhotos(updatedPhotos);
+
+    // Adjust current photo index if necessary
+    if (currentPhotoIndex >= updatedPhotos.length) {
+      setCurrentPhotoIndex(Math.max(0, updatedPhotos.length - 1));
+    }
+
+    // If group is now empty, close modal and notify parent
+    if (result.groupEmpty) {
+      closeModal();
+      if (onGroupDeleted) {
+        onGroupDeleted(selectedGroup.id);
+      }
+    } else if (onPhotoDeleted) {
+      onPhotoDeleted(photoId, selectedGroup.id);
+    }
+
+    setShowDeleteConfirm(null);
+  } catch (error) {
+    console.error('Error deleting photo:', error);
+    alert('Failed to delete photo. Please try again.');
+  } finally {
+    setDeleteLoading(false);
+  }
+};
+
+  // Add after line 258 (after the isGroupLiked function, before deleteGroup)
+const DeleteConfirmModal = ({ item, type, onConfirm, onCancel }) => (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-lg p-6 max-w-md w-full">
+      <h3 className="text-lg font-semibold mb-4">Confirm Deletion</h3>
+      <p className="text-gray-600 mb-6">
+        Are you sure you want to delete this {type}? This action cannot be undone.
+        {type === 'group' && item.photoCount > 1 && (
+          <span className="block mt-2 font-medium text-red-600">
+            This will delete all {item.photoCount} photos in this group.
+          </span>
+        )}
+      </p>
+      <div className="flex space-x-3">
+        <button
+          onClick={onCancel}
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+          disabled={deleteLoading}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onConfirm}
+          className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+          disabled={deleteLoading}
+        >
+          {deleteLoading ? 'Deleting...' : 'Delete'}
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
   return (
     <div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {photoGroups.map((group) => (
           <div
             key={group.id}
-            className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer transform transition hover:scale-105 relative"
+            className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer transform transition hover:scale-105 relative group" // Added "group" class
           >
+            {/* Add this delete button right after the opening div */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDeleteConfirm({ type: 'group', item: group });
+              }}
+              className="absolute top-2 right-2 z-10 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+              aria-label="Delete photo group"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16"
+                />
+              </svg>
+            </button>
+            
             <div
               className="h-48 overflow-hidden relative"
               onClick={() => openModal(group)}
@@ -450,6 +597,34 @@ export default function PhotoGallery({ photoGroups }) {
             ) : groupPhotos.length > 0 ? (
               <>
                 <div className="relative">
+                  {/* Add this delete button for individual photos */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDeleteConfirm({ 
+                        type: 'photo', 
+                        item: groupPhotos[currentPhotoIndex] 
+                      });
+                    }}
+                    className="absolute top-2 left-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-lg"
+                    aria-label="Delete this photo"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                  </button>
+
                   {groupPhotos[currentPhotoIndex].is_video ? (
                     <LazyMedia
                       src={groupPhotos[currentPhotoIndex].url}
@@ -742,6 +917,22 @@ export default function PhotoGallery({ photoGroups }) {
             )}
           </div>
         </div>
+      )}
+      
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <DeleteConfirmModal
+          item={showDeleteConfirm.item}
+          type={showDeleteConfirm.type}
+          onConfirm={() => {
+            if (showDeleteConfirm.type === 'group') {
+              deleteGroup(showDeleteConfirm.item);
+            } else {
+              deletePhoto(showDeleteConfirm.item.id);
+            }
+          }}
+          onCancel={() => setShowDeleteConfirm(null)}
+        />
       )}
     </div>
   );

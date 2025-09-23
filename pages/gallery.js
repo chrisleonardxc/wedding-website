@@ -19,6 +19,33 @@ export default function Gallery() {
   });
   const [hasReachedEnd, setHasReachedEnd] = useState(false);
 
+  // Add these functions to handle deletions
+
+  const handleGroupDeleted = (groupId) => {
+    // Remove the deleted group from the state
+    setPhotoGroups(prev => prev.filter(group => group.id !== groupId));
+    
+    // Update pagination count
+    setPagination(prev => ({
+      ...prev,
+      totalGroups: prev.totalGroups - 1
+    }));
+  };
+
+  const handlePhotoDeleted = (photoId, groupId) => {
+    // Update the specific group's photo count
+    setPhotoGroups(prev => prev.map(group => {
+      if (group.id === groupId) {
+        return {
+          ...group,
+          photoCount: group.photoCount - 1,
+          photos: group.photos ? group.photos.filter(p => p.id !== photoId) : []
+        };
+      }
+      return group;
+    }));
+  };
+
   const fetchPhotoGroups = async (page = 1, append = false) => {
     try {
       if (!append) setLoading(true);
@@ -140,7 +167,11 @@ export default function Gallery() {
           <div className="text-center py-10 text-red-500">{error}</div>
         ) : (
           <>
-            <PhotoGallery photoGroups={photoGroups} />
+            <PhotoGallery 
+              photoGroups={photoGroups} 
+              onGroupDeleted={handleGroupDeleted}
+              onPhotoDeleted={handlePhotoDeleted}
+            />
             
             {/* Loading indicator for infinite scroll */}
             {isFetching && (
