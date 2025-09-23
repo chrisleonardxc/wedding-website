@@ -1,21 +1,23 @@
 import { useState, useEffect } from "react";
-import Layout from "../components/Layout";
-import PhotoGallery from "../components/PhotoGallery";
 import { getLikedPhotos } from "../lib/galleryUtils";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
+import Layout from "../components/Layout";
+import PhotoGallery from "../components/PhotoGallery";
 
 export default function Gallery() {
   const [photoGroups, setPhotoGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [likeStats, setLikeStats] = useState({ totalLikes: 0 });
+  const [sortBy, setSortBy] = useState('newest');
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
     totalGroups: 0,
     hasNextPage: false,
     hasPrevPage: false,
-    limit: 10
+    limit: 10,
+    sortBy: 'newest'
   });
   const [hasReachedEnd, setHasReachedEnd] = useState(false);
 
@@ -46,12 +48,12 @@ export default function Gallery() {
     }));
   };
 
-  const fetchPhotoGroups = async (page = 1, append = false) => {
+  const fetchPhotoGroups = async (page = 1, append = false, newSortBy = sortBy) => {
     try {
       if (!append) setLoading(true);
       
-      console.log(`Fetching photo groups for page ${page}...`);
-      const response = await fetch(`/api/photos?page=${page}&limit=${pagination.limit}`);
+      console.log(`Fetching photo groups for page ${page} with sort: ${newSortBy}...`);
+      const response = await fetch(`/api/photos?page=${page}&limit=${pagination.limit}&sortBy=${newSortBy}`);
 
       console.log("Response status:", response.status);
 
@@ -88,8 +90,16 @@ export default function Gallery() {
   // Function to fetch more photos for infinite scroll
   const fetchMorePhotos = async () => {
     if (pagination.hasNextPage && !hasReachedEnd) {
-      await fetchPhotoGroups(pagination.currentPage + 1, true);
+      await fetchPhotoGroups(pagination.currentPage + 1, true, sortBy);
     }
+  };
+
+  // Handle sort change
+  const handleSortChange = (newSortBy) => {
+    setSortBy(newSortBy);
+    setHasReachedEnd(false);
+    setPhotoGroups([]);
+    fetchPhotoGroups(1, false, newSortBy);
   };
 
   // Use the infinite scroll hook
@@ -129,15 +139,47 @@ export default function Gallery() {
           </a>
         </div>
 
-        <p className="text-center text-gray-600 mb-10">
+        <p className="text-center text-gray-600 mb-6">
           Browse through the wonderful moments captured by our guests
         </p>
+
+        {/* Sort Controls */}
+        <div className="flex justify-between items-center mb-6">
+          <div></div> {/* Empty div for spacing */}
+          <div className="flex items-center space-x-4">
+            <span className="text-sm font-medium text-gray-700">Sort by:</span>
+            <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+              <button
+                onClick={() => handleSortChange('newest')}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  sortBy === 'newest'
+                    ? 'bg-primary text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Most Recent
+              </button>
+              <button
+                onClick={() => handleSortChange('likes')}
+                className={`px-4 py-2 text-sm font-medium transition-colors border-l border-gray-300 ${
+                  sortBy === 'likes'
+                    ? 'bg-primary text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Most Liked
+              </button>
+            </div>
+          </div>
+        </div>
 
         {/* Pagination Info */}
         {!loading && !error && pagination.totalGroups > 0 && (
           <div className="text-center mb-6">
             <span className="text-sm text-gray-500">
               Showing {photoGroups.length} of {pagination.totalGroups} photo groups
+              {sortBy === 'likes' && ' (sorted by likes)'}
+              {sortBy === 'newest' && ' (sorted by newest first)'}
             </span>
           </div>
         )}
@@ -231,25 +273,30 @@ function BackToTopButton() {
     });
   };
 
+  if (!isVisible) {
+    return null;
+  }
+
   return (
-    <>
-      {isVisible && (
-        <button
-          onClick={scrollToTop}
-          className="fixed bottom-8 right-8 bg-primary hover:bg-primary-dark text-white p-3 rounded-full shadow-lg transition-all duration-300 z-40"
-          aria-label="Back to top"
-        >
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            className="h-6 w-6" 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-          </svg>
-        </button>
-      )}
-    </>
+    <button
+      onClick={scrollToTop}
+      className="fixed bottom-8 right-8 bg-primary hover:bg-primary-dark text-white p-3 rounded-full shadow-lg transition-all duration-300 z-40"
+      aria-label="Back to top"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-6 w-6"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M5 10l7-7m0 0l7 7m-7-7v18"
+        />
+      </svg>
+    </button>
   );
 }
