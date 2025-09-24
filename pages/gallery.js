@@ -123,6 +123,27 @@ export default function Gallery() {
     }
   }, [photoGroups]);
 
+  // Add this useEffect to sync liked photos with the displayed groups
+  useEffect(() => {
+    if (photoGroups.length > 0 && typeof window !== 'undefined') {
+      const likedPhotos = getLikedPhotos();
+      
+      // Update photoGroups to include like information
+      setPhotoGroups(prevGroups => 
+        prevGroups.map(group => {
+          // Check if this group or any of its photos are liked
+          const isGroupLiked = likedPhotos[group.id] || 
+            (group.photos && group.photos.some(photo => likedPhotos[photo.id]));
+          
+          return {
+            ...group,
+            isLiked: isGroupLiked
+          };
+        })
+      );
+    }
+  }, [photoGroups.length]); // Only run when photoGroups length changes, not on every update
+
   return (
     <Layout title="Wedding Photo & Video Gallery">
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
@@ -142,6 +163,22 @@ export default function Gallery() {
         <p className="text-center text-gray-600 mb-6">
           Browse through the wonderful moments captured by our guests
         </p>
+
+        {!loading && !error && likeStats.totalLikes > 0 && (
+          <div className="text-center mb-6">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                className="h-5 w-5 mr-1" 
+                viewBox="0 0 20 20" 
+                fill="currentColor"
+              >
+                <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+              </svg>
+              You've liked {likeStats.totalLikes} {likeStats.totalLikes === 1 ? 'photo' : 'photos'}
+            </span>
+          </div>
+        )}        
 
         {/* Sort Controls */}
         <div className="flex justify-between items-center mb-6">
@@ -183,22 +220,6 @@ export default function Gallery() {
             </span>
           </div>
         )} */}
-
-        {!loading && !error && likeStats.totalLikes > 0 && (
-          <div className="text-center mb-6">
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                className="h-5 w-5 mr-1" 
-                viewBox="0 0 20 20" 
-                fill="currentColor"
-              >
-                <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-              </svg>
-              You've liked {likeStats.totalLikes} {likeStats.totalLikes === 1 ? 'photo' : 'photos'}
-            </span>
-          </div>
-        )}
 
         {loading ? (
           <div className="text-center py-10">

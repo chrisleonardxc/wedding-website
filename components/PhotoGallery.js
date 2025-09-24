@@ -343,13 +343,20 @@ export default function PhotoGallery({ photoGroups, onGroupDeleted, onPhotoDelet
     return !!likedPhotos[photoId];
   };
 
-  // Check if any photo in a group is liked
   const isGroupLiked = (group) => {
-    if (!group.photos || group.photos.length === 0) {
-      return isLiked(group.id);
+    // First check if the group itself is liked (for single photo groups)
+    if (isLiked(group.id)) {
+      return true;
     }
 
-    return group.photos.some((photo) => isLiked(photo.id));
+    // Then check if any photos in the group are liked
+    if (group.photos && group.photos.length > 0) {
+      return group.photos.some((photo) => isLiked(photo.id));
+    }
+
+    // Fallback: if no photos array but photoCount > 1, we need to fetch the group
+    // For now, just check the main group ID
+    return false;
   };
 
 const deleteGroup = async (group) => {

@@ -1,3 +1,4 @@
+
 import { groupPhotosByUploadGroup } from '../../../lib/galleryUtils';
 import { getDb } from '../../../lib/db';
 
@@ -90,12 +91,14 @@ export default async function handler(req, res) {
       // Group photos by upload group
       const photoGroups = groupPhotosByUploadGroup(processedPhotos);
       
-      // Calculate total likes for each group and sort according to the request
+      // Calculate total likes for each group and ensure photo IDs are accessible
       const groupsWithLikes = photoGroups.map(group => {
         const totalLikes = group.photos.reduce((sum, photo) => sum + (photo.likes_count || 0), 0);
         return {
           ...group,
-          total_likes: totalLikes
+          total_likes: totalLikes,
+          // Add a photoIds array for easy access to individual photo IDs
+          photoIds: group.photos.map(photo => photo.id)
         };
       });
       
