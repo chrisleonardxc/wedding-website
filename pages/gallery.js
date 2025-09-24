@@ -173,7 +173,7 @@ export default function Gallery() {
           </div>
         </div>
 
-        {/* Pagination Info */}
+        {/* Pagination Info
         {!loading && !error && pagination.totalGroups > 0 && (
           <div className="text-center mb-6">
             <span className="text-sm text-gray-500">
@@ -182,7 +182,7 @@ export default function Gallery() {
               {sortBy === 'newest' && ' (sorted by newest first)'}
             </span>
           </div>
-        )}
+        )} */}
 
         {!loading && !error && likeStats.totalLikes > 0 && (
           <div className="text-center mb-6">
