@@ -1,7 +1,7 @@
 
-import { getDb } from '../../../../lib/db';
 import fs from 'fs';
 import path from 'path';
+import { getDb } from '../../../../lib/db';
 
 export default async function handler(req, res) {
   if (req.method !== 'DELETE') {
@@ -10,10 +10,17 @@ export default async function handler(req, res) {
   }
 
   const { groupId } = req.query;
-  const { photoId } = req.body;
+  const { photoId, password } = req.body;
 
   if (!groupId) {
     return res.status(400).json({ error: 'Group ID is required' });
+  }
+
+  // Check password - you can set this in environment variables or hardcode it
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'; // Change this!
+  
+  if (!password || password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'Invalid password' });
   }
 
   try {

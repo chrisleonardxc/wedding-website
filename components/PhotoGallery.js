@@ -18,6 +18,9 @@ export default function PhotoGallery({ photoGroups, onGroupDeleted, onPhotoDelet
   const [likedPhotos, setLikedPhotos] = useState({});
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(null);
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   // Load liked photos from localStorage on component mount
   useEffect(() => {
@@ -115,6 +118,62 @@ export default function PhotoGallery({ photoGroups, onGroupDeleted, onPhotoDelet
     setGroupPhotos([]);
     setCurrentPhotoIndex(0);
   };
+
+    // Add Password Prompt Modal Component
+  const PasswordPromptModal = ({ item, type, onConfirm, onCancel }) => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full">
+        <h3 className="text-lg font-semibold mb-4">Admin Password Required</h3>
+        <p className="text-gray-600 mb-4">
+          Enter the admin password to delete this {type}.
+          {type === 'group' && item.photoCount > 1 && (
+            <span className="block mt-2 font-medium text-red-600">
+              This will delete all {item.photoCount} photos in this group.
+            </span>
+          )}
+        </p>
+        
+        <div className="mb-4">
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setPasswordError(''); // Clear error when typing
+            }}
+            placeholder="Enter admin password"
+            className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                onConfirm();
+              }
+            }}
+            autoFocus
+          />
+          {passwordError && (
+            <p className="text-red-600 text-sm mt-2">{passwordError}</p>
+          )}
+        </div>
+
+        <div className="flex space-x-3">
+          <button
+            onClick={onCancel}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            disabled={deleteLoading}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+            disabled={deleteLoading || !password.trim()}
+          >
+            {deleteLoading ? 'Deleting...' : 'Delete'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   const goToNextPhoto = () => {
     if (currentPhotoIndex < groupPhotos.length - 1) {
@@ -293,7 +352,6 @@ export default function PhotoGallery({ photoGroups, onGroupDeleted, onPhotoDelet
     return group.photos.some((photo) => isLiked(photo.id));
   };
 
-  // Add this function after the existing functions like toggleLike
 const deleteGroup = async (group) => {
   setDeleteLoading(true);
   try {
@@ -302,11 +360,19 @@ const deleteGroup = async (group) => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ groupId: group.id }),
+      body: JSON.stringify({ 
+        groupId: group.id,
+        password: password
+      }),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to delete group');
+      const errorData = await response.json();
+      if (response.status === 401) {
+        setPasswordError('Incorrect password. Please try again.');
+        return;
+      }
+      throw new Error(errorData.error || 'Failed to delete group');
     }
 
     const result = await response.json();
@@ -322,16 +388,19 @@ const deleteGroup = async (group) => {
       onGroupDeleted(group.id);
     }
 
+    // Reset states
+    setShowPasswordPrompt(null);
     setShowDeleteConfirm(null);
+    setPassword('');
+    setPasswordError('');
   } catch (error) {
     console.error('Error deleting group:', error);
-    alert('Failed to delete group. Please try again.');
+    setPasswordError('Failed to delete group. Please try again.');
   } finally {
     setDeleteLoading(false);
   }
 };
 
-// Add this function after deleteGroup
 const deletePhoto = async (photoId) => {
   setDeleteLoading(true);
   try {
@@ -340,11 +409,19 @@ const deletePhoto = async (photoId) => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ photoId }),
+      body: JSON.stringify({ 
+        photoId,
+        password: password
+      }),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to delete photo');
+      const errorData = await response.json();
+      if (response.status === 401) {
+        setPasswordError('Incorrect password. Please try again.');
+        return;
+      }
+      throw new Error(errorData.error || 'Failed to delete photo');
     }
 
     const result = await response.json();
@@ -369,16 +446,19 @@ const deletePhoto = async (photoId) => {
       onPhotoDeleted(photoId, selectedGroup.id);
     }
 
+    // Reset states
+    setShowPasswordPrompt(null);
     setShowDeleteConfirm(null);
+    setPassword('');
+    setPasswordError('');
   } catch (error) {
     console.error('Error deleting photo:', error);
-    alert('Failed to delete photo. Please try again.');
+    setPasswordError('Failed to delete photo. Please try again.');
   } finally {
     setDeleteLoading(false);
   }
 };
 
-  // Add after line 258 (after the isGroupLiked function, before deleteGroup)
 const DeleteConfirmModal = ({ item, type, onConfirm, onCancel }) => (
   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
     <div className="bg-white rounded-lg p-6 max-w-md w-full">
@@ -925,13 +1005,30 @@ const DeleteConfirmModal = ({ item, type, onConfirm, onCancel }) => (
           item={showDeleteConfirm.item}
           type={showDeleteConfirm.type}
           onConfirm={() => {
-            if (showDeleteConfirm.type === 'group') {
-              deleteGroup(showDeleteConfirm.item);
-            } else {
-              deletePhoto(showDeleteConfirm.item.id);
-            }
+            setShowDeleteConfirm(null);
+            setShowPasswordPrompt(showDeleteConfirm);
           }}
           onCancel={() => setShowDeleteConfirm(null)}
+        />
+      )}
+
+      {/* Password Prompt Modal */}
+      {showPasswordPrompt && (
+        <PasswordPromptModal
+          item={showPasswordPrompt.item}
+          type={showPasswordPrompt.type}
+          onConfirm={() => {
+            if (showPasswordPrompt.type === 'group') {
+              deleteGroup(showPasswordPrompt.item);
+            } else {
+              deletePhoto(showPasswordPrompt.item.id);
+            }
+          }}
+          onCancel={() => {
+            setShowPasswordPrompt(null);
+            setPassword('');
+            setPasswordError('');
+          }}
         />
       )}
     </div>
