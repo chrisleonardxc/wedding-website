@@ -1,6 +1,6 @@
 
-import { getDb } from '../../../lib/db';
 import fs from 'fs';
+import { getDb } from '../../../lib/db';
 import path from 'path';
 
 export default async function handler(req, res) {
@@ -9,10 +9,17 @@ export default async function handler(req, res) {
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 
-  const { photoIds, groupId } = req.body;
+  const { photoIds, groupId, password } = req.body;
 
   if (!photoIds && !groupId) {
     return res.status(400).json({ error: 'Either photoIds or groupId is required' });
+  }
+
+  // Add password validation
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+  
+  if (!password || password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'Invalid password' });
   }
 
   try {
