@@ -7,8 +7,8 @@ services:
       - PUID=1026
       - PGID=100
       - NODE_ENV=production
-      - ADMIN_PASSWORD=REDACTED
-      - SITE_PASSWORD=REDACTED
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - SITE_PASSWORD=${SITE_PASSWORD}
     volumes:
       - uploads:/app/public/uploads:rw,nocopy
       - data:/app/data:rw,nocopy

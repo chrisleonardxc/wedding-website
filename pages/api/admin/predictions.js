@@ -7,8 +7,13 @@ const participantsFilePath = path.join(process.cwd(), "data", "prediction-partic
 export default async function handler(req, res) {
   // Use environment variable for password
   const { password, format = 'json' } = req.query;
-  const adminPassword = process.env.ADMIN_PASSWORD || "fallback-password";
-  
+  const adminPassword = process.env.ADMIN_PASSWORD;
+
+  if (!adminPassword) {
+    console.error('ADMIN_PASSWORD environment variable is not set');
+    return res.status(500).json({ error: "Admin access not configured" });
+  }
+
   if (password !== adminPassword) {
     return res.status(401).json({ error: "Unauthorized" });
   }

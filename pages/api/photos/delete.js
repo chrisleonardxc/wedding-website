@@ -16,8 +16,13 @@ export default async function handler(req, res) {
   }
 
   // Add password validation
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
-  
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+
+  if (!ADMIN_PASSWORD) {
+    console.error('ADMIN_PASSWORD environment variable is not set');
+    return res.status(500).json({ error: 'Admin access not configured' });
+  }
+
   if (!password || password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Invalid password' });
   }

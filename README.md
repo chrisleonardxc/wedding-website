@@ -49,17 +49,21 @@ A Next.js-based wedding website with photo sharing capabilities and cake voting 
 
 ## Environment Variables
 
-Create a `.env.local` file with the following variables:
+Copy `.env.example` to `.env.local` (for `npm run dev`) or `.env` (for docker-compose) and set:
 
+- `SITE_PASSWORD` (required): password guests use to access the site
+- `ADMIN_PASSWORD` (required): password required to delete photos or view prediction results
 - `DB_PATH` (optional): Custom path to SQLite database (defaults to `./data/wedding.db`)
+
+The site will refuse logins/admin actions if these are not set — there are no built-in default passwords.
 
 ## Deployment
 
-This application can be deployed to platforms like Vercel or Netlify, or containerized using the included Dockerfile:
+This application can be deployed to platforms like Vercel or Netlify, or containerized using the included Dockerfile. When using `docker-compose.yml`, create a `.env` file next to it (see `.env.example`) with `SITE_PASSWORD` and `ADMIN_PASSWORD` set — do not hardcode them in `docker-compose.yml`.
 
 ```
 docker build -t wedding-website .
-docker run -p 3000:3000 wedding-website
+docker run -p 3000:3000 -e SITE_PASSWORD=yourpassword -e ADMIN_PASSWORD=yourpassword wedding-website
 ```
 
 ## Project Structure

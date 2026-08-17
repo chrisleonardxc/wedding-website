@@ -13,9 +13,9 @@ export function middleware(request) {
 
   // Check if user has the correct password cookie
   const authCookie = request.cookies.get('wedding-auth')
-  const correctPassword = process.env.SITE_PASSWORD || 'wedding2025'
+  const correctPassword = process.env.SITE_PASSWORD
 
-  if (authCookie?.value === correctPassword) {
+  if (correctPassword && authCookie?.value === correctPassword) {
     return NextResponse.next()
   }
 

@@ -1,7 +1,12 @@
 
 export default function handler(req, res) {
   const { token } = req.query
-  const correctPassword = process.env.SITE_PASSWORD || 'REDACTED'
+  const correctPassword = process.env.SITE_PASSWORD
+
+  if (!correctPassword) {
+    console.error('SITE_PASSWORD environment variable is not set')
+    return res.redirect(302, '/login?error=invalid')
+  }
 
   if (token === correctPassword) {
     // Set the auth cookie

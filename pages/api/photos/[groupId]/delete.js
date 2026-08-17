@@ -16,9 +16,14 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Group ID is required' });
   }
 
-  // Check password - you can set this in environment variables or hardcode it
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'; // Change this!
-  
+  // Check password against the ADMIN_PASSWORD environment variable
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+
+  if (!ADMIN_PASSWORD) {
+    console.error('ADMIN_PASSWORD environment variable is not set');
+    return res.status(500).json({ error: 'Admin access not configured' });
+  }
+
   if (!password || password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Invalid password' });
   }
